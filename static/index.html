@@ -1,0 +1,612 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>JUGO</title>
+<link rel="icon" type="image/svg+xml" href="/static/favicon.svg">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg:       #0d0f12;
+    --surface:  #13161b;
+    --border:   #1f242d;
+    --border2:  #2a3040;
+    --accent:   #00e5a0;
+    --accent2:  #0099ff;
+    --warn:     #ff6b35;
+    --text:     #c8d0dc;
+    --text-dim: #5a6478;
+    --text-hi:  #eef2f8;
+    --mono: 'IBM Plex Mono', monospace;
+    --sans: 'IBM Plex Sans', sans-serif;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--mono);
+    font-size: 13px;
+    height: 100vh;
+    display: grid;
+    grid-template-rows: 48px 1fr;
+    overflow: hidden;
+  }
+
+  /* ── Header ── */
+  header {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    padding: 0 20px;
+    border-bottom: 1px solid var(--border);
+    background: var(--surface);
+  }
+  header .logo {
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--accent);
+    letter-spacing: 0.05em;
+  }
+  header .logo span { color: var(--text-dim); }
+
+  .sep { width: 1px; height: 20px; background: var(--border2); }
+
+  .config-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex: 1;
+  }
+  .config-row label {
+    color: var(--text-dim);
+    font-size: 11px;
+    white-space: nowrap;
+  }
+
+  input, select {
+    background: var(--bg);
+    border: 1px solid var(--border2);
+    color: var(--text);
+    font-family: var(--mono);
+    font-size: 12px;
+    padding: 5px 10px;
+    border-radius: 4px;
+    outline: none;
+    transition: border-color .15s;
+  }
+  input:focus, select:focus { border-color: var(--accent); }
+  input[type="password"] { width: 200px; letter-spacing: 0.1em; }
+  select { cursor: pointer; }
+  select option { background: var(--surface); }
+
+  #pane-select { width: 220px; }
+  #apikey { width: 220px; }
+
+  /* ── Main layout ── */
+  main {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0;
+    overflow: hidden;
+  }
+
+  .panel {
+    display: flex;
+    flex-direction: column;
+    border-right: 1px solid var(--border);
+    overflow: hidden;
+  }
+  .panel:last-child { border-right: none; }
+
+  .panel-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 10px 16px;
+    border-bottom: 1px solid var(--border);
+    background: var(--surface);
+    min-height: 42px;
+  }
+  .panel-title {
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--text-dim);
+  }
+  .panel-actions { display: flex; gap: 8px; align-items: center; }
+
+  /* ── Buttons ── */
+  .btn {
+    font-family: var(--mono);
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.06em;
+    padding: 5px 14px;
+    border-radius: 4px;
+    border: none;
+    cursor: pointer;
+    transition: all .15s;
+    text-transform: uppercase;
+  }
+  .btn-ghost {
+    background: transparent;
+    border: 1px solid var(--border2);
+    color: var(--text-dim);
+  }
+  .btn-ghost:hover { border-color: var(--text-dim); color: var(--text); }
+
+  .btn-accent {
+    background: var(--accent);
+    color: #000;
+  }
+  .btn-accent:hover { filter: brightness(1.1); transform: translateY(-1px); }
+  .btn-accent:active { transform: translateY(0); }
+
+  .btn-blue {
+    background: var(--accent2);
+    color: #fff;
+  }
+  .btn-blue:hover { filter: brightness(1.15); transform: translateY(-1px); }
+  .btn-blue:active { transform: translateY(0); }
+
+  .btn-warn {
+    background: var(--warn);
+    color: #fff;
+  }
+  .btn-warn:hover { filter: brightness(1.1); transform: translateY(-1px); }
+
+  .btn:disabled { opacity: 0.35; cursor: not-allowed; transform: none !important; }
+
+  /* ── Codex output panel ── */
+  #output-raw {
+    flex: 1;
+    padding: 14px 16px;
+    overflow-y: auto;
+    white-space: pre-wrap;
+    word-break: break-word;
+    font-size: 12px;
+    line-height: 1.65;
+    color: var(--text);
+    background: var(--bg);
+  }
+
+  #output-translated {
+    flex: 1;
+    padding: 14px 16px;
+    overflow-y: auto;
+    white-space: pre-wrap;
+    word-break: break-word;
+    font-size: 12px;
+    line-height: 1.65;
+    color: var(--text-hi);
+    background: var(--bg);
+    border-top: 1px solid var(--border);
+  }
+
+  .output-divider {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 6px 16px;
+    background: var(--surface);
+    border-top: 1px solid var(--border);
+    border-bottom: 1px solid var(--border);
+    font-size: 10px;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--text-dim);
+  }
+  .output-divider .pill {
+    background: var(--accent);
+    color: #000;
+    font-size: 9px;
+    font-weight: 700;
+    padding: 2px 7px;
+    border-radius: 20px;
+    letter-spacing: 0.08em;
+  }
+
+  /* ── Input panel ── */
+  .input-area {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+
+  #user-input {
+    flex: 1;
+    background: var(--bg);
+    border: none;
+    color: var(--text-hi);
+    font-family: var(--mono);
+    font-size: 13px;
+    line-height: 1.7;
+    padding: 16px;
+    resize: none;
+    outline: none;
+  }
+  #user-input::placeholder { color: var(--text-dim); }
+
+  #translated-preview {
+    flex: 0 0 auto;
+    min-height: 80px;
+    max-height: 180px;
+    overflow-y: auto;
+    padding: 14px 16px;
+    border-top: 1px solid var(--border);
+    background: #0a1a14;
+    color: var(--accent);
+    font-size: 12px;
+    line-height: 1.65;
+    white-space: pre-wrap;
+  }
+  #translated-preview:empty::before {
+    content: 'Übersetzung erscheint hier...';
+    color: var(--text-dim);
+    font-style: italic;
+  }
+
+  .input-footer {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 10px 16px;
+    border-top: 1px solid var(--border);
+    background: var(--surface);
+    gap: 10px;
+  }
+  .input-footer .left { display: flex; gap: 8px; align-items: center; }
+  .input-footer .right { display: flex; gap: 8px; align-items: center; }
+
+  .lang-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 11px;
+    color: var(--text-dim);
+  }
+  .lang-row select { padding: 4px 8px; }
+
+  /* ── Status / spinner ── */
+  .status {
+    font-size: 11px;
+    color: var(--text-dim);
+    min-width: 100px;
+  }
+  .status.loading { color: var(--accent2); }
+  .status.ok { color: var(--accent); }
+  .status.err { color: var(--warn); }
+
+  @keyframes spin { to { transform: rotate(360deg); } }
+  .spinner {
+    display: inline-block;
+    width: 10px; height: 10px;
+    border: 2px solid var(--border2);
+    border-top-color: var(--accent2);
+    border-radius: 50%;
+    animation: spin .6s linear infinite;
+    vertical-align: middle;
+    margin-right: 5px;
+  }
+
+  /* ── Scrollbars ── */
+  ::-webkit-scrollbar { width: 6px; height: 6px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 3px; }
+  ::-webkit-scrollbar-thumb:hover { background: var(--text-dim); }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo">JUGO!</div>
+  <div class="sep"></div>
+  <div class="config-row">
+    <label>PANE</label>
+    <select id="pane-select">
+      <option value="">– select pane –</option>
+    </select>
+    <button class="btn btn-ghost" onclick="loadPanes()">↻</button>
+    <div class="sep"></div>
+    <label>DEEPL KEY</label>
+    <input type="password" id="apikey" placeholder="xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx:fx">
+    <div class="sep"></div>
+    <label>LINES</label>
+    <input type="number" id="capture-lines" value="80" min="10" max="500" style="width:70px">
+  </div>
+</header>
+
+<main>
+
+  <!-- LEFT: Codex Output -->
+  <div class="panel">
+    <div class="panel-header">
+      <span class="panel-title">Codex Output</span>
+      <div class="panel-actions">
+        <span class="status" id="capture-status"></span>
+        <button class="btn btn-ghost" onclick="capturePane()">↻ Refresh</button>
+        <button class="btn btn-accent" onclick="translateOutput()">Translate ↓</button>
+      </div>
+    </div>
+    <div id="output-raw">Wähle einen tmux-Pane und drücke Refresh...</div>
+    <div class="output-divider">
+      <div class="pill">DE</div>
+      Übersetzung
+    </div>
+    <div id="output-translated"></div>
+  </div>
+
+  <!-- RIGHT: Input -->
+  <div class="panel">
+    <div class="panel-header">
+      <span class="panel-title">Deine Nachricht</span>
+      <div class="panel-actions">
+        <div class="lang-row">
+          <span>Von</span>
+          <select id="src-lang">
+            <option value="">Auto</option>
+            <option value="DE" selected>DE – Deutsch</option>
+            <option value="EN">EN – English</option>
+            <option value="HR">HR – Kroatisch</option>
+            <option value="ES">ES – Spanisch</option>
+            <option value="FR">FR – Französisch</option>
+            <option value="IT">IT – Italienisch</option>
+            <option value="PT">PT – Portugiesisch</option>
+            <option value="RU">RU – Russisch</option>
+            <option value="TR">TR – Türkisch</option>
+            <option value="PL">PL – Polnisch</option>
+            <option value="NL">NL – Niederländisch</option>
+            <option value="SV">SV – Schwedisch</option>
+            <option value="DA">DA – Dänisch</option>
+            <option value="FI">FI – Finnisch</option>
+            <option value="CS">CS – Tschechisch</option>
+            <option value="SK">SK – Slowakisch</option>
+            <option value="SL">SL – Slowenisch</option>
+            <option value="RO">RO – Rumänisch</option>
+            <option value="HU">HU – Ungarisch</option>
+            <option value="EL">EL – Griechisch</option>
+            <option value="BG">BG – Bulgarisch</option>
+            <option value="LT">LT – Litauisch</option>
+            <option value="LV">LV – Lettisch</option>
+            <option value="ET">ET – Estnisch</option>
+            <option value="ZH">ZH – Chinesisch</option>
+            <option value="JA">JA – Japanisch</option>
+            <option value="KO">KO – Koreanisch</option>
+            <option value="UK">UK – Ukrainisch</option>
+            <option value="ID">ID – Indonesisch</option>
+          </select>
+          <span>→</span>
+          <select id="tgt-lang">
+            <option value="HR" selected>HR – Kroatisch</option>
+            <option value="ES">ES – Spanisch</option>
+            <option value="EN-US">EN – English (US)</option>
+            <option value="EN-GB">EN – English (UK)</option>
+            <option value="DE">DE – Deutsch</option>
+            <option value="FR">FR – Französisch</option>
+            <option value="IT">IT – Italienisch</option>
+            <option value="PT-BR">PT – Portugiesisch (BR)</option>
+            <option value="PT-PT">PT – Portugiesisch (PT)</option>
+            <option value="RU">RU – Russisch</option>
+            <option value="TR">TR – Türkisch</option>
+            <option value="PL">PL – Polnisch</option>
+            <option value="NL">NL – Niederländisch</option>
+            <option value="SV">SV – Schwedisch</option>
+            <option value="DA">DA – Dänisch</option>
+            <option value="FI">FI – Finnisch</option>
+            <option value="CS">CS – Tschechisch</option>
+            <option value="SK">SK – Slowakisch</option>
+            <option value="SL">SL – Slowenisch</option>
+            <option value="RO">RO – Rumänisch</option>
+            <option value="HU">HU – Ungarisch</option>
+            <option value="EL">EL – Griechisch</option>
+            <option value="BG">BG – Bulgarisch</option>
+            <option value="LT">LT – Litauisch</option>
+            <option value="LV">LV – Lettisch</option>
+            <option value="ET">ET – Estnisch</option>
+            <option value="ZH">ZH – Chinesisch</option>
+            <option value="JA">JA – Japanisch</option>
+            <option value="KO">KO – Koreanisch</option>
+            <option value="UK">UK – Ukrainisch</option>
+            <option value="ID">ID – Indonesisch</option>
+          </select>
+        </div>
+      </div>
+    </div>
+
+    <div class="input-area">
+      <textarea id="user-input" placeholder="Hier auf Deutsch schreiben...&#10;&#10;Ctrl+Enter → Translate &amp; Deploy"></textarea>
+      <div id="translated-preview"></div>
+    </div>
+
+    <div class="input-footer">
+      <div class="left">
+        <span class="status" id="input-status"></span>
+      </div>
+      <div class="right">
+        <button class="btn btn-ghost" onclick="translateInput()">Translate</button>
+        <button class="btn btn-warn" onclick="clearInput()">✕ Clear</button>
+        <button class="btn btn-blue" id="deploy-btn" onclick="deploy()" disabled>▶ Deploy</button>
+      </div>
+    </div>
+  </div>
+
+</main>
+
+<script>
+  const API = window.location.origin;
+  let lastTranslation = '';
+
+  // ── Persist settings ──────────────────────────────────────────────────────
+  function saveSettings() {
+    localStorage.setItem('ct_apikey', document.getElementById('apikey').value);
+    localStorage.setItem('ct_pane',   document.getElementById('pane-select').value);
+    localStorage.setItem('ct_tgt',    document.getElementById('tgt-lang').value);
+    localStorage.setItem('ct_src',    document.getElementById('src-lang').value);
+    localStorage.setItem('ct_lines',  document.getElementById('capture-lines').value);
+  }
+  function loadSettings() {
+    const k = localStorage.getItem('ct_apikey'); if (k) document.getElementById('apikey').value = k;
+    const t = localStorage.getItem('ct_tgt');    if (t) document.getElementById('tgt-lang').value = t;
+    const s = localStorage.getItem('ct_src');    if (s) document.getElementById('src-lang').value = s;
+    const l = localStorage.getItem('ct_lines');  if (l) document.getElementById('capture-lines').value = l;
+  }
+  document.querySelectorAll('input, select').forEach(el => el.addEventListener('change', saveSettings));
+
+  // ── Load panes ────────────────────────────────────────────────────────────
+  async function loadPanes() {
+    try {
+      const r = await fetch(`${API}/panes`);
+      const d = await r.json();
+      const sel = document.getElementById('pane-select');
+      const saved = localStorage.getItem('ct_pane') || '';
+      sel.innerHTML = '<option value="">– select pane –</option>';
+      d.panes.forEach(p => {
+        const id = p.split(' ')[0];
+        const opt = new Option(p, id);
+        if (id === saved) opt.selected = true;
+        sel.appendChild(opt);
+      });
+    } catch(e) {
+      setStatus('capture-status', 'err', 'Server nicht erreichbar');
+    }
+  }
+
+  // ── Capture pane ──────────────────────────────────────────────────────────
+  async function capturePane() {
+    const pane = document.getElementById('pane-select').value;
+    if (!pane) return setStatus('capture-status', 'err', 'Pane wählen');
+    const lines = parseInt(document.getElementById('capture-lines').value) || 80;
+    setStatus('capture-status', 'loading', 'Lese...');
+    try {
+      const r = await fetch(`${API}/capture`, {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({ pane, lines })
+      });
+      const d = await r.json();
+      document.getElementById('output-raw').textContent = d.text;
+      document.getElementById('output-translated').textContent = '';
+      setStatus('capture-status', 'ok', 'OK');
+      saveSettings();
+    } catch(e) {
+      setStatus('capture-status', 'err', 'Fehler');
+    }
+  }
+
+  // ── Translate output (Codex → DE) ─────────────────────────────────────────
+  async function translateOutput() {
+    const text = document.getElementById('output-raw').textContent.trim();
+    if (!text) return;
+    const apikey = document.getElementById('apikey').value.trim();
+    if (!apikey) return setStatus('capture-status', 'err', 'API Key fehlt');
+    setStatus('capture-status', 'loading', 'Übersetze...');
+    const tgtLang = document.getElementById('tgt-lang').value;
+    // reverse: target language output → back to source language
+    const srcLang = tgtLang.split('-')[0]; // strip EN-US → EN
+    try {
+      const r = await fetch(`${API}/translate`, {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({
+          text,
+          source_lang: srcLang,
+          target_lang: document.getElementById('src-lang').value || 'DE',
+          api_key: apikey
+        })
+      });
+      const d = await r.json();
+      document.getElementById('output-translated').textContent = d.translation;
+      setStatus('capture-status', 'ok', `← ${d.detected_source || srcLang}`);
+    } catch(e) {
+      setStatus('capture-status', 'err', 'Übersetzungsfehler');
+    }
+  }
+
+  // ── Translate input ───────────────────────────────────────────────────────
+  async function translateInput() {
+    const text = document.getElementById('user-input').value.trim();
+    if (!text) return;
+    const apikey = document.getElementById('apikey').value.trim();
+    if (!apikey) return setStatus('input-status', 'err', 'API Key fehlt');
+    setStatus('input-status', 'loading', 'Übersetze...');
+    document.getElementById('translated-preview').textContent = '';
+    try {
+      const r = await fetch(`${API}/translate`, {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({
+          text,
+          source_lang: document.getElementById('src-lang').value || null,
+          target_lang: document.getElementById('tgt-lang').value,
+          api_key: apikey
+        })
+      });
+      const d = await r.json();
+      lastTranslation = d.translation;
+      document.getElementById('translated-preview').textContent = d.translation;
+      document.getElementById('deploy-btn').disabled = false;
+      setStatus('input-status', 'ok', `→ ${document.getElementById('tgt-lang').value}`);
+    } catch(e) {
+      setStatus('input-status', 'err', 'Fehler');
+    }
+  }
+
+  // ── Deploy ────────────────────────────────────────────────────────────────
+  async function deploy() {
+    if (!lastTranslation) return;
+    const pane = document.getElementById('pane-select').value;
+    if (!pane) return setStatus('input-status', 'err', 'Pane wählen');
+    setStatus('input-status', 'loading', 'Sende...');
+    try {
+      const r = await fetch(`${API}/send`, {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({ pane, text: lastTranslation })
+      });
+      await r.json();
+      setStatus('input-status', 'ok', '✓ Gesendet!');
+      document.getElementById('user-input').value = '';
+      document.getElementById('translated-preview').textContent = '';
+      document.getElementById('deploy-btn').disabled = true;
+      lastTranslation = '';
+    } catch(e) {
+      setStatus('input-status', 'err', 'Sendefehler');
+    }
+  }
+
+  function clearInput() {
+    document.getElementById('user-input').value = '';
+    document.getElementById('translated-preview').textContent = '';
+    document.getElementById('deploy-btn').disabled = true;
+    lastTranslation = '';
+    setStatus('input-status', '', '');
+  }
+
+  // ── Keyboard shortcuts ────────────────────────────────────────────────────
+  document.getElementById('user-input').addEventListener('keydown', e => {
+    if (e.ctrlKey && e.key === 'Enter') { e.preventDefault(); translateInput(); }
+    if (e.ctrlKey && e.shiftKey && e.key === 'Enter') { e.preventDefault(); deploy(); }
+  });
+
+  // ── Helpers ───────────────────────────────────────────────────────────────
+  function setStatus(id, type, msg) {
+    const el = document.getElementById(id);
+    el.className = 'status' + (type ? ` ${type}` : '');
+    el.innerHTML = type === 'loading'
+      ? `<span class="spinner"></span>${msg}`
+      : msg;
+  }
+
+  // ── Init ──────────────────────────────────────────────────────────────────
+  loadSettings();
+  loadPanes();
+</script>
+
+</body>
+</html>

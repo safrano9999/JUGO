@@ -1,0 +1,13 @@
+{
+  "module_name": "jugo",
+  "source": "https://github.com/safrano9999/JUGO.git",
+  "target_dir": "JUGO",
+  "image_name": "localhost/citadel-jugo:latest",
+  "container_name": "citadel-jugo",
+  "hostname": "citadel-jugo",
+  "network_mode": "host",
+  "network_name": "host",
+  "publish_ports": [],
+  "runtime_command": "cd /opt/JUGO && python3 server.py",
+  "persistent_paths": []
+}

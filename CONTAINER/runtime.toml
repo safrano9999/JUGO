@@ -1,0 +1,10 @@
+schema_version = 1
+
+[[runtime.programs]]
+name = "jugo"
+command = "python3 server.py"
+directory = "/opt/JUGO"
+autostart = true
+autorestart = true
+startsecs = 3
+priority = 230

@@ -1,0 +1,8 @@
+# Unified env_example (source: CONTAINER/module.toml)
+# Same keys across repos are asked once by CITADEL builder.
+# Project-specific keys such as *_PORT stay per repo.
+
+JUGO_PORT=840 # JUGO service port
+DEEPL_KEY= # DeepL API key
+OPENAI_API_BASE=http://127.0.0.1:4000/v1 # OpenAI-compatible base URL (LiteLLM)
+DEFAULT_MODEL=openai/gpt-5.4 # Unified default model across services

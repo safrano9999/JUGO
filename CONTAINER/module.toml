@@ -1,0 +1,144 @@
+schema_version = 1
+
+[module]
+name = "jugo"
+catalog = "public.list"
+kind = "repo"
+source = "https://github.com/safrano9999/JUGO.git"
+target_dir = "JUGO"
+env_ref = "CONTAINER/env_example"
+runtime_ref = "runtime.toml"
+description = "JUGO bridge service"
+default_selected = true
+
+[[ports]]
+internal = 840
+publish_default = true
+description = "JUGO HTTP"
+
+[[env]]
+key = "JUGO_PORT"
+default = "840"
+description = "JUGO service port"
+aliases = ["APP_PORT", "PORT"]
+
+[[env]]
+key = "DEEPL_KEY"
+default = ""
+description = "DeepL API key"
+
+[[env]]
+key = "OPENAI_API_BASE"
+default = "http://127.0.0.1:4000/v1"
+description = "OpenAI-compatible base URL (LiteLLM)"
+shared_group = "litellm_base"
+
+[[env]]
+key = "OPENAI_API_KEY"
+default = ""
+description = "OpenAI/LiteLLM bearer token"
+shared_group = "litellm_api_key"
+
+[[env]]
+key = "DEFAULT_MODEL"
+default = "openai/gpt-5.4"
+description = "Unified default model across services"
+shared_group = "default_llm"
+
+[[env]]
+key = "OLLAMA_API_BASE"
+default = "ollama"
+description = "Local litellm backend"
+shared_group = "ollama_api_base"
+when_litellm_mode = "local"
+
+[[env]]
+key = "GEMINI_API_KEY"
+default = ""
+description = "Gemini provider key"
+shared_group = "gemini_api_key"
+when_litellm_mode = "local"
+
+[[env]]
+key = "ANTHROPIC_API_KEY"
+default = ""
+description = "Anthropic provider key"
+shared_group = "anthropic_api_key"
+when_litellm_mode = "local"
+
+[[env]]
+key = "XAI_API_KEY"
+default = ""
+description = "xAI provider key"
+shared_group = "xai_api_key"
+when_litellm_mode = "local"
+
+[[env]]
+key = "GROQ_API_KEY"
+default = ""
+description = "Groq provider key"
+shared_group = "groq_api_key"
+when_litellm_mode = "local"
+
+[[env]]
+key = "MISTRAL_API_KEY"
+default = ""
+description = "Mistral provider key"
+shared_group = "mistral_api_key"
+when_litellm_mode = "local"
+
+[[env]]
+key = "KILOCODE_API_KEY"
+default = ""
+description = "KiloCode provider key"
+shared_group = "kilocode_api_key"
+when_litellm_mode = "local"
+
+[[env]]
+key = "COHERE_API_KEY"
+default = ""
+description = "Cohere provider key"
+shared_group = "cohere_api_key"
+when_litellm_mode = "local"
+
+[[env]]
+key = "DEEPSEEK_API_KEY"
+default = ""
+description = "DeepSeek provider key"
+shared_group = "deepseek_api_key"
+when_litellm_mode = "local"
+
+[[env]]
+key = "PERPLEXITY_API_KEY"
+default = ""
+description = "Perplexity provider key"
+shared_group = "perplexity_api_key"
+when_litellm_mode = "local"
+
+[[env]]
+key = "OPENROUTER_API_KEY"
+default = ""
+description = "OpenRouter provider key"
+shared_group = "openrouter_api_key"
+when_litellm_mode = "local"
+
+[[env]]
+key = "ZAI_API_KEY"
+default = ""
+description = "Z.AI provider key"
+shared_group = "zai_api_key"
+when_litellm_mode = "local"
+
+[[env]]
+key = "AZURE_OPENAI_API_KEY"
+default = ""
+description = "Azure OpenAI key"
+shared_group = "azure_openai_api_key"
+when_litellm_mode = "local"
+
+[[env]]
+key = "CEREBRAS_API_KEY"
+default = ""
+description = "Cerebras provider key"
+shared_group = "cerebras_api_key"
+when_litellm_mode = "local"
