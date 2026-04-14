@@ -84,7 +84,6 @@
   select option { background: var(--surface); }
 
   #pane-select { width: 220px; }
-  #apikey { width: 220px; }
 
   /* ── Main layout ── */
   main {
@@ -314,9 +313,6 @@
     </select>
     <button class="btn btn-ghost" onclick="loadPanes()">↻</button>
     <div class="sep"></div>
-    <label>DEEPL KEY</label>
-    <input type="password" id="apikey" placeholder="xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx:fx">
-    <div class="sep"></div>
     <label>LINES</label>
     <input type="number" id="capture-lines" value="80" min="10" max="500" style="width:70px">
   </div>
@@ -444,14 +440,12 @@
 
   // ── Persist settings ──────────────────────────────────────────────────────
   function saveSettings() {
-    localStorage.setItem('ct_apikey', document.getElementById('apikey').value);
     localStorage.setItem('ct_pane',   document.getElementById('pane-select').value);
     localStorage.setItem('ct_tgt',    document.getElementById('tgt-lang').value);
     localStorage.setItem('ct_src',    document.getElementById('src-lang').value);
     localStorage.setItem('ct_lines',  document.getElementById('capture-lines').value);
   }
   function loadSettings() {
-    const k = localStorage.getItem('ct_apikey'); if (k) document.getElementById('apikey').value = k;
     const t = localStorage.getItem('ct_tgt');    if (t) document.getElementById('tgt-lang').value = t;
     const s = localStorage.getItem('ct_src');    if (s) document.getElementById('src-lang').value = s;
     const l = localStorage.getItem('ct_lines');  if (l) document.getElementById('capture-lines').value = l;
@@ -503,8 +497,6 @@
   async function translateOutput() {
     const text = document.getElementById('output-raw').textContent.trim();
     if (!text) return;
-    const apikey = document.getElementById('apikey').value.trim();
-    if (!apikey) return setStatus('capture-status', 'err', 'API Key fehlt');
     setStatus('capture-status', 'loading', 'Übersetze...');
     const tgtLang = document.getElementById('tgt-lang').value;
     // reverse: target language output → back to source language
@@ -516,8 +508,7 @@
         body: JSON.stringify({
           text,
           source_lang: srcLang,
-          target_lang: document.getElementById('src-lang').value || 'DE',
-          api_key: apikey
+          target_lang: document.getElementById('src-lang').value || 'DE'
         })
       });
       const d = await r.json();
@@ -532,8 +523,6 @@
   async function translateInput() {
     const text = document.getElementById('user-input').value.trim();
     if (!text) return;
-    const apikey = document.getElementById('apikey').value.trim();
-    if (!apikey) return setStatus('input-status', 'err', 'API Key fehlt');
     setStatus('input-status', 'loading', 'Übersetze...');
     document.getElementById('translated-preview').textContent = '';
     try {
@@ -543,8 +532,7 @@
         body: JSON.stringify({
           text,
           source_lang: document.getElementById('src-lang').value || null,
-          target_lang: document.getElementById('tgt-lang').value,
-          api_key: apikey
+          target_lang: document.getElementById('tgt-lang').value
         })
       });
       const d = await r.json();

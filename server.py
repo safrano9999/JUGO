@@ -126,7 +126,7 @@ async def translate(req: TranslateRequest):
 
     api_key = req.api_key or os.environ.get("DEEPL_KEY", "")
     if not api_key:
-        raise HTTPException(status_code=400, detail="Kein DeepL API Key – bitte in .env oder im Browser eintragen")
+        raise HTTPException(status_code=400, detail="Kein DeepL API Key – bitte DEEPL_KEY in .env setzen")
 
     payload = {
         "text": [req.text],
