@@ -2,7 +2,7 @@ schema_version = 1
 
 [[runtime.programs]]
 name = "jugo"
-command = "python3 server.py"
+command = "python3 webui.py"
 directory = "/opt/JUGO"
 autostart = true
 autorestart = true

@@ -1,8 +1,12 @@
 #!/usr/bin/env python3
 """
 codex-translate – A translation proxy for Codex CLI via tmux
-Run: python3 server.py
+Run: python3 webui.py
 """
+
+import sys
+from pathlib import Path
+sys.path.insert(0, str(Path(__file__).resolve().parent / "functions"))
 
 from python_header import get, get_port  # noqa: F401 — loads .env
 
