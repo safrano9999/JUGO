@@ -1,0 +1,14 @@
+[Container]
+ContainerName=jugo
+Image=localhost/jugo
+PublishPort=11001:11001
+EnvironmentFile=/home/openclaw/safcontainer/JUGO/.env
+Exec=uvicorn webui:app --host 127.0.0.1 --port 11001
+#AutoUpdate=registry
+
+[Service]
+Restart=always
+TimeoutStartSec=30
+
+[Install]
+WantedBy=default.target

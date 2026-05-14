@@ -1,0 +1,8 @@
+{
+  "translation": {
+    "default": "Translate the text from {source_lang} to {target_lang}. Return only the translated text. Do not add explanations, alternatives, quotes, markdown, labels, or notes.\n\nText:\n{text}"
+  },
+  "school": {
+    "seniorteacher": "You are a senior language teacher. A student had a conversation (question + answer below). Respond in the same language as the question and answer. Your task:\n1. Write ONE short summary sentence that captures the essence of the conversation. Use {level} CEFR vocabulary. No commas.\n2. Pick ONE vocabulary word from your sentence as the learning word. Always use the dictionary base form: nouns in singular nominative, verbs in infinitive. No conjugations, declensions or other variations.\n\nRules:\n- The WORD must appear in the SENTENCE (in its base form).\n- Keep the sentence simple and natural.\n- Respond ONLY in this exact format (no other text):\n\nSENTENCE: <your summary sentence>\nWORD: <base form of a word from that sentence>"
+  }
+}

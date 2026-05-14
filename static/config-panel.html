@@ -1,0 +1,57 @@
+<!-- Config Panel — loaded by config.js into #config-panel -->
+<div class="cfg-sections">
+
+  <!-- Backend -->
+  <div class="cfg-section">
+    <div class="cfg-label">Backend</div>
+    <div class="cfg-row">
+      <button class="btn btn-ghost cfg-icon-btn" onclick="refreshBackend()" title="Refresh">&#8635;</button>
+      <select id="backend-select" onchange="onBackendChange()"><option value="">-- Backend --</option></select>
+      <select id="backend-target" onchange="onTargetChange()"></select>
+      <button class="btn btn-accent" id="capture-btn" onclick="capturePane()">Capture</button>
+      <button class="btn btn-ghost" id="chat-clear-btn" style="display:none;" onclick="clearChatHistory()">Clear</button>
+      <span class="status" id="llm-status"></span>
+      <div class="cfg-spacer"></div>
+      <button class="btn btn-accent" onclick="newSession()">New Session</button>
+      <span id="tmux-lines-group" style="display:none;">
+        <label class="cfg-tiny-label">Lines</label>
+        <input type="number" id="capture-lines" value="80" min="10" max="500" step="10" class="cfg-lines-input" onchange="saveSettings()">
+      </span>
+    </div>
+  </div>
+
+  <!-- Language & Translation -->
+  <div class="cfg-section">
+    <div class="cfg-label">Language</div>
+    <div class="cfg-row">
+      <select id="src-lang"><option value="">Auto</option></select>
+      <span class="cfg-arrow">&#8596;</span>
+      <select id="tgt-lang"></select>
+      <div class="cfg-spacer"></div>
+      <span class="cfg-tiny-label">Translation:</span>
+      <select id="translator-provider" onchange="onTranslatorProviderChange()"></select>
+      <select id="translator-model" style="display:none;" onchange="saveSettings()"></select>
+      <div class="quota-bar" id="deepl-quota">
+        <span>DeepL</span>
+        <div class="bar"><div class="bar-fill" id="quota-fill" style="width:0%"></div></div>
+        <span id="quota-text">--</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Options -->
+  <div class="cfg-section">
+    <div class="cfg-label">Options</div>
+    <div class="cfg-row">
+      <label class="toggle" id="auto-refresh-label"><input type="checkbox" id="auto-refresh"><span class="slider"></span> Capture 5s</label>
+      <label class="toggle"><input type="checkbox" id="context-toggle" onchange="saveSettings()"><span class="slider"></span> Context</label>
+      <label class="toggle" id="direct-toggle-label" style="display:none;"><input type="checkbox" id="direct-toggle" onchange="onDirectToggle()"><span class="slider"></span> Direct</label>
+      <div class="cfg-spacer"></div>
+      <button class="btn btn-ghost" onclick="checkConnection()">Check</button>
+    </div>
+  </div>
+
+  <!-- Check results -->
+  <div id="check-bar"></div>
+
+</div>

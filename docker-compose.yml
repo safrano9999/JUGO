@@ -1,0 +1,14 @@
+# docker-compose.yml — JUGO
+# Usage: docker compose up -d
+
+services:
+  jugo:
+    image: localhost/jugo
+    container_name: jugo
+    hostname: jugo
+    ports:
+      - "11001:11001"
+    env_file:
+      - /home/openclaw/safcontainer/JUGO/.env
+    command: uvicorn webui:app --host 127.0.0.1 --port 11001
+    restart: always

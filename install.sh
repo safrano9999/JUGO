@@ -1,0 +1,1 @@
+../SCRIPTS/INSTALL/install_template.sh

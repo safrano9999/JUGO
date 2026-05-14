@@ -1,0 +1,2573 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>JUGO</title>
+<link rel="icon" type="image/svg+xml" href="/static/favicon.svg">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500&display=swap" rel="stylesheet" media="print" onload="this.media='all'">
+<style>
+  :root {
+    --bg:       #0d0f12;
+    --surface:  #13161b;
+    --border:   #1f242d;
+    --border2:  #2a3040;
+    --accent:   #00e5a0;
+    --accent2:  #0099ff;
+    --warn:     #ff6b35;
+    --text:     #c8d0dc;
+    --text-dim: #5a6478;
+    --text-hi:  #eef2f8;
+    --mono: 'IBM Plex Mono', monospace;
+    --sans: 'IBM Plex Sans', sans-serif;
+  }
+  [data-theme="light"] {
+    --bg:       #f5f5f5;
+    --surface:  #ffffff;
+    --border:   #ddd;
+    --border2:  #ccc;
+    --accent:   #00a870;
+    --accent2:  #0077cc;
+    --warn:     #d94a00;
+    --text:     #333;
+    --text-dim: #888;
+    --text-hi:  #111;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    background: var(--bg); color: var(--text); font-family: var(--mono);
+    font-size: 13px; height: 100vh; display: grid;
+    grid-template-rows: auto auto 1fr auto; overflow: hidden;
+  }
+
+  /* ── Header ── */
+  header {
+    display: flex; align-items: center; gap: 10px;
+    padding: 6px 14px; border-bottom: 1px solid var(--border);
+    background: var(--surface); z-index: 20;
+  }
+  header .logo { font-size: 14px; font-weight: 600; color: var(--accent); letter-spacing: 0.05em; }
+  .sep { width: 1px; height: 16px; background: var(--border2); }
+  .header-right { display: flex; align-items: center; gap: 8px; margin-left: auto; }
+  .config-toggle {
+    font-family: var(--mono); font-size: 11px; font-weight: 600;
+    padding: 4px 12px; border-radius: 6px; border: 1px solid var(--border2);
+    background: transparent; color: var(--text); cursor: pointer;
+    transition: all .2s; display: flex; align-items: center; gap: 6px;
+  }
+  .config-toggle:hover { border-color: var(--accent); color: var(--accent); }
+  .config-toggle.open { border-color: var(--accent); color: var(--accent); background: rgba(0,229,160,0.06); }
+  .config-toggle .arrow { transition: transform .25s; display: inline-block; font-size: 8px; }
+  .config-toggle.open .arrow { transform: rotate(180deg); }
+  .backend-pill {
+    font-size: 10px; padding: 3px 10px; border-radius: 10px;
+    background: var(--border); color: var(--text-dim);
+    letter-spacing: 0.04em; white-space: nowrap;
+  }
+  .backend-pill.active { background: rgba(0,229,160,0.12); color: var(--accent); }
+  .quota-bar { display: flex; align-items: center; gap: 6px; font-size: 11px; color: var(--text-dim); }
+  .quota-bar .bar { width: 80px; height: 6px; background: var(--border2); border-radius: 3px; overflow: hidden; }
+  .quota-bar .bar-fill { height: 100%; background: var(--accent); border-radius: 3px; transition: width .3s; }
+
+  /* ── Config Panel ── */
+  #config-panel {
+    max-height: 0; overflow: hidden;
+    background: var(--surface);
+    border-bottom: 1px solid transparent;
+    transition: max-height .35s cubic-bezier(0.4, 0, 0.2, 1),
+                border-color .2s, padding .3s;
+    padding: 0 14px;
+  }
+  #config-panel.open {
+    max-height: 260px;
+    border-bottom: 1px solid var(--border);
+    padding: 10px 14px 12px;
+  }
+  .cfg-sections { display: flex; flex-direction: column; gap: 6px; }
+  .cfg-section { display: flex; align-items: center; gap: 10px; min-height: 28px; }
+  .cfg-label {
+    font-size: 9px; font-weight: 600; letter-spacing: 0.12em;
+    text-transform: uppercase; color: var(--text-dim);
+    min-width: 58px; white-space: nowrap;
+  }
+  .cfg-row {
+    display: flex; align-items: center; gap: 8px; flex-wrap: wrap; flex: 1;
+  }
+  .cfg-spacer { width: 1px; height: 14px; background: var(--border2); margin: 0 2px; }
+  .cfg-arrow { color: var(--text-dim); font-size: 13px; }
+  .cfg-icon-btn { padding: 3px 8px !important; font-size: 14px !important; }
+  .cfg-tiny-label { font-size: 10px; color: var(--text-dim); }
+  .cfg-lines-input { width: 50px; text-align: center; }
+
+  /* ── Check bar ── */
+  #check-bar {
+    font-size: 11px; font-family: var(--mono);
+    align-items: center; gap: 10px; flex-wrap: wrap;
+    display: none;
+  }
+  #check-bar.visible {
+    display: flex; padding: 6px 0 2px;
+  }
+
+  input, select {
+    background: var(--bg); border: 1px solid var(--border2); color: var(--text);
+    font-family: var(--mono); font-size: 12px; padding: 5px 10px;
+    border-radius: 4px; outline: none; transition: border-color .15s;
+  }
+  input:focus, select:focus { border-color: var(--accent); }
+  select { cursor: pointer; }
+  select option { background: var(--surface); }
+  #backend-target { width: 220px; }
+
+  /* ── Toggle switch ── */
+  .toggle { display: flex; align-items: center; gap: 6px; cursor: pointer; font-size: 11px; color: var(--text-dim); user-select: none; }
+  .toggle input { display: none; }
+  .toggle .slider {
+    width: 32px; height: 16px; background: var(--border2); border-radius: 8px;
+    position: relative; transition: background .2s;
+  }
+  .toggle .slider::after {
+    content: ''; width: 12px; height: 12px; background: var(--text-dim);
+    border-radius: 50%; position: absolute; top: 2px; left: 2px; transition: all .2s;
+  }
+  .toggle input:checked + .slider { background: var(--accent); }
+  .toggle input:checked + .slider::after { left: 18px; background: #000; }
+
+  /* ── Main 2-column layout with grid areas ── */
+  /* Q1=STDIN(DE) Q2=Translated Input  Q3=STDOUT(foreign) Q4=Translated Output */
+  main {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    grid-template-rows: 1fr 1fr;
+    grid-template-areas:
+      "q1  q2"
+      "q3  q4";
+    gap: 0; overflow: hidden;
+  }
+  .section-q1  { grid-area: q1;  border-right: 1px solid var(--border); border-bottom: 1px solid var(--border); }
+  .section-q2  { grid-area: q2;  border-bottom: 1px solid var(--border); }
+  .section-q2t { }
+  .section-q3  { grid-area: q3;  border-right: 1px solid var(--border); }
+  .section-q3t { }
+  .section-q4  { grid-area: q4; }
+  .section-q4t { }
+
+  .panel {
+    display: flex; flex-direction: column; overflow: hidden;
+    min-height: 0; height: 100%;
+  }
+
+  /* ── Mobile: single column, conversation flow ── */
+  /* Q1(write) → Q2(translated) → Q3(response) → Q4(translated response) */
+  @media (max-width: 768px) {
+    main {
+      grid-template-columns: 1fr;
+      grid-template-rows: auto auto auto auto;
+      grid-template-areas:
+        "q1"
+        "q2"
+        "q3"
+        "q4";
+      overflow-y: auto;
+    }
+    .section-q1, .section-q3 { border-right: none; }
+    .panel { min-height: 120px; }
+    .quad-text { min-height: 100px; }
+    #user-input { min-height: 80px; }
+    header { flex-wrap: wrap; gap: 8px; padding: 8px 12px; height: auto; }
+    .sep { display: none; }
+    #config-panel.open { max-height: 420px; }
+    .cfg-section { flex-direction: column; align-items: flex-start; gap: 4px; }
+    .cfg-row { gap: 6px; }
+    body { grid-template-rows: auto auto 1fr auto; }
+  }
+  .panel-header {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 8px 14px; border-bottom: 1px solid var(--border);
+    background: var(--surface); min-height: 36px;
+  }
+  .panel-title { font-size: 10px; font-weight: 600; letter-spacing: 0.1em; text-transform: uppercase; color: var(--text-dim); }
+  .panel-actions { display: flex; gap: 6px; align-items: center; }
+
+  /* ── Buttons ── */
+  .btn {
+    font-family: var(--mono); font-size: 11px; font-weight: 600;
+    letter-spacing: 0.06em; padding: 5px 14px; border-radius: 4px;
+    border: none; cursor: pointer; transition: all .15s; text-transform: uppercase;
+  }
+  .btn-ghost { background: transparent; border: 1px solid var(--border2); color: var(--text-dim); }
+  .btn-ghost:hover { border-color: var(--text-dim); color: var(--text); }
+  .btn-accent { background: var(--accent); color: #000; }
+  .btn-accent:hover { filter: brightness(1.1); transform: translateY(-1px); }
+  .btn-accent:active { transform: translateY(0); }
+  .btn-send { background: var(--accent2); color: #fff; }
+  .btn-send:hover { filter: brightness(1.15); transform: translateY(-1px); }
+  .btn-send:active { transform: translateY(0); }
+  .btn:disabled { opacity: 0.35; cursor: not-allowed; transform: none !important; }
+  .btn-clear { background: transparent; border: 1px solid var(--border2); color: var(--warn); font-size: 10px; padding: 4px 10px; }
+  .btn-clear:hover { border-color: var(--warn); }
+
+  /* ── Text areas ── */
+  .quad-text {
+    flex: 1; padding: 12px 14px; overflow-y: auto; white-space: pre-wrap;
+    word-break: break-word; font-size: 12px; line-height: 1.65;
+    color: var(--text); background: var(--bg);
+  }
+  .quad-text.accent-bg { background: #0a1a14; color: var(--accent); }
+  [data-theme="light"] .quad-text.accent-bg { background: #e6fff5; }
+  .quad-text:empty::before { color: var(--text-dim); font-style: italic; }
+
+  /* ── Input textarea ── */
+  #user-input {
+    flex: 1; background: var(--bg); border: none; color: var(--text-hi);
+    font-family: var(--mono); font-size: 13px; line-height: 1.7;
+    padding: 12px 14px; resize: none; outline: none;
+  }
+  #user-input::placeholder { color: var(--text-dim); }
+
+  /* ── Footer bars ── */
+  .input-footer {
+    display: flex; align-items: center; justify-content: flex-end;
+    padding: 6px 14px; border-top: 1px solid var(--border);
+    background: var(--surface); gap: 6px;
+  }
+  .input-footer .left { display: flex; gap: 6px; align-items: center; }
+  .input-footer .right { display: flex; gap: 6px; align-items: center; }
+
+  .lang-row { display: flex; align-items: center; gap: 6px; font-size: 11px; color: var(--text-dim); }
+  .lang-row select { padding: 3px 6px; font-size: 11px; }
+
+  /* ── TTS row ── */
+  .tts-row {
+    display: flex; align-items: center; gap: 6px; padding: 6px 14px;
+    border-top: 1px solid var(--border); background: var(--surface); font-size: 11px;
+    flex-wrap: wrap;
+  }
+  .tts-row select { padding: 3px 6px; font-size: 11px; max-width: 160px; }
+  .tts-row .btn { padding: 3px 10px; font-size: 10px; }
+  .tts-row label { color: var(--text-dim); font-size: 10px; }
+
+  /* ── Key buttons row ── */
+  .key-row {
+    display: flex; align-items: center; gap: 6px; padding: 6px 14px;
+    border-top: 1px solid var(--border); background: var(--surface);
+  }
+  .key-row .btn { padding: 3px 10px; font-size: 10px; }
+
+  /* ── Status / spinner ── */
+  .status { font-size: 11px; color: var(--text-dim); min-width: 20px; }
+  .status.loading { color: var(--accent2); }
+  .status.ok { color: var(--accent); }
+  .status.err { color: var(--warn); }
+
+  @keyframes spin { to { transform: rotate(360deg); } }
+  .spinner {
+    display: inline-block; width: 10px; height: 10px;
+    border: 2px solid var(--border2); border-top-color: var(--accent2);
+    border-radius: 50%; animation: spin .6s linear infinite;
+    vertical-align: middle; margin-right: 5px;
+  }
+
+  /* ── Scrollbars ── */
+  /* ── School section ── */
+  .school-section {
+    border-top: 2px solid var(--border); background: var(--surface);
+    transition: max-height .3s ease;
+  }
+  .school-section.collapsed { max-height: 36px; overflow: hidden; }
+  .school-section.expanded { max-height: 600px; overflow-y: auto; }
+  .school-header {
+    display: flex; align-items: center; gap: 10px; padding: 6px 14px;
+    cursor: pointer; user-select: none; min-height: 36px;
+  }
+  .school-header .school-title {
+    font-size: 13px; font-weight: 600; letter-spacing: 0.08em;
+    color: var(--accent); text-transform: uppercase;
+  }
+  .school-body { padding: 10px 14px; }
+  .school-output {
+    display: flex; flex-direction: column; gap: 0;
+    font-size: 12px; line-height: 1.8;
+  }
+  .school-line {
+    display: flex; align-items: center; gap: 8px; padding: 3px 0;
+  }
+  .school-line .school-label {
+    font-size: 10px; color: var(--text-dim); text-transform: uppercase; min-width: 100px; white-space: nowrap;
+  }
+  .school-line .school-text { flex: 1; }
+  .school-line .btn { padding: 2px 6px; font-size: 11px; }
+  .school-history-entry {
+    padding: 6px 0; border-bottom: 1px solid var(--border);
+  }
+  .school-history-entry .school-line { padding: 1px 0; }
+  .school-history-entry .school-label { font-size: 9px; }
+  .school-output .foreign { color: var(--accent); font-weight: 500; }
+  .school-output .native { color: var(--text); }
+  .school-word { margin-top: 8px; padding-top: 8px; border-top: 1px solid var(--border); }
+  @media (max-width: 768px) {
+    .school-output { grid-template-columns: 1fr; }
+  }
+
+  /* ── Directive tags ── */
+  .directive-tag {
+    display: inline-flex; align-items: center; gap: 4px;
+    background: var(--border); color: var(--text); font-size: 10px;
+    padding: 2px 8px; border-radius: 10px; white-space: nowrap;
+  }
+  .directive-tag button {
+    background: none; border: none; color: var(--warn); cursor: pointer;
+    font-size: 12px; font-weight: 700; padding: 0; line-height: 1;
+  }
+
+  ::-webkit-scrollbar { width: 6px; height: 6px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 3px; }
+  ::-webkit-scrollbar-thumb:hover { background: var(--text-dim); }
+
+  /* ── Console / OpLog panel ── */
+  #console-panel {
+    max-height: 0; overflow: hidden;
+    background: #0a0c0e; border-top: 1px solid transparent;
+    transition: max-height .35s cubic-bezier(0.4, 0, 0.2, 1), border-color .2s;
+  }
+  #console-panel.open {
+    max-height: 220px; border-top: 1px solid var(--border);
+  }
+  #console-log {
+    height: 200px; overflow-y: auto; padding: 6px 12px;
+    font-family: var(--mono); font-size: 11px; line-height: 1.6; color: #8a9ab5;
+  }
+  #console-log .c-init { color: #5a6a80; }
+  #console-log .c-result { color: var(--accent); }
+  #console-log .c-error { color: #ff4444; }
+  #console-log .c-ts { color: #3a4a60; margin-right: 6px; }
+  #console-log .c-op { color: var(--accent2); margin-right: 4px; }
+  #console-log .c-q { color: #7a6aaa; margin-right: 4px; }
+</style>
+</head>
+<body>
+
+<header>
+  <span class="logo">JUGO</span>
+  <div class="sep"></div>
+  <span class="backend-pill" id="backend-pill">no backend</span>
+  <div class="header-right">
+    <button class="config-toggle" id="console-toggle-btn" onclick="toggleConsolePanel()">
+      <span class="arrow">&#9660;</span> Console
+    </button>
+    <button class="config-toggle" id="config-toggle-btn" onclick="toggleConfigPanel()">
+      <span class="arrow">&#9660;</span> Config
+    </button>
+    <button class="btn btn-ghost" id="theme-toggle" onclick="toggleTheme()" style="font-size:14px; padding:3px 8px;"></button>
+  </div>
+</header>
+<div id="config-panel"></div>
+
+<main>
+
+  <!-- Q1: STDIN (DE) — top left, user writes here -->
+  <div class="section-q1 panel">
+    <div class="panel-header">
+      <span class="panel-title" id="q1-title">STDIN (DE)</span>
+      <div class="panel-actions">
+        <span class="status" id="input-status"></span>
+        <button class="btn btn-clear" onclick="clearInput()">Clear</button>
+        <button class="btn btn-accent" onclick="translateInput()" title="Ctrl+Enter">Translate</button>
+        <button class="btn btn-send" onclick="translateAndSend()" title="Enter">Send</button>
+        <button class="btn" id="code-btn" style="background:var(--warn);color:#fff;display:none;" onclick="sendCode()" title="Send raw to Q3, translate Q3→Q4, skip Q2+School">Code</button>
+      </div>
+    </div>
+    <div class="tts-row" id="tts-row-q1-input">
+      <label>TTS</label>
+      <select id="tts-provider-q1-input" onchange="onProviderChange('q1-input')"></select>
+      <select id="tts-model-q1-input"></select>
+      <select id="tts-voice-q1-input"></select>
+      <button class="btn btn-ghost" onclick="playTTS('q1-input')">&#9654;</button>
+      <button class="btn btn-ghost" onclick="pauseTTS()">||</button>
+      <button class="btn btn-ghost" onclick="stopTTS()">&#9632;</button>
+      <label class="toggle"><input type="checkbox" id="auto-tts-q1-input" onchange="saveSettings()"><span class="slider"></span> Auto</label>
+      <label class="toggle"><input type="checkbox" id="tts-filter-q1-input" onchange="saveSettings()"><span class="slider"></span> Filter: mute code</label>
+      <label class="toggle"><input type="checkbox" id="tts-chunk-q1-input" onchange="saveSettings()"><span class="slider"></span> Chunk</label>
+      <span class="status" id="tts-status-q1-input"></span>
+    </div>
+    <div id="directives-row" style="display:none; padding:6px 14px; border-bottom:1px solid var(--border); background:var(--surface); font-size:11px;">
+      <div id="directives-list" style="display:flex; flex-wrap:wrap; gap:4px; margin-bottom:4px;"></div>
+      <div style="display:flex; gap:4px; align-items:center;">
+        <input type="text" id="directive-input" placeholder="Directive..." style="flex:1; padding:3px 8px; font-size:11px;">
+        <button class="btn btn-accent" style="padding:3px 10px; font-size:11px;" onclick="addDirective()">+</button>
+      </div>
+    </div>
+    <textarea id="user-input" placeholder="Hier schreiben..."></textarea>
+  </div>
+
+  <!-- Q2: STDIN Translated — top right -->
+  <div class="section-q2 panel">
+    <div class="panel-header">
+      <span class="panel-title" id="q2-title">STDIN Translated (HR)</span>
+    </div>
+    <div class="tts-row" id="tts-row-right" style="display:none">
+      <label>TTS</label>
+      <select id="tts-provider-right" onchange="onProviderChange('right')"></select>
+      <select id="tts-model-right"></select>
+      <select id="tts-voice-right"></select>
+      <button class="btn btn-ghost" onclick="playTTS('right')">&#9654;</button>
+      <button class="btn btn-ghost" onclick="pauseTTS()">||</button>
+      <button class="btn btn-ghost" onclick="stopTTS()">&#9632;</button>
+      <label class="toggle"><input type="checkbox" id="tts-autoplay"><span class="slider"></span> Auto</label>
+      <label class="toggle"><input type="checkbox" id="tts-filter-right" onchange="saveSettings()"><span class="slider"></span> Filter: mute code</label>
+      <label class="toggle"><input type="checkbox" id="tts-chunk-right" onchange="saveSettings()"><span class="slider"></span> Chunk</label>
+      <span class="status" id="tts-status-right"></span>
+    </div>
+    <div id="directives-list-q2" style="display:none; padding:6px 14px; border-bottom:1px solid var(--border); background:var(--surface); font-size:11px; flex-wrap:wrap; gap:4px;"></div>
+    <div class="quad-text accent-bg" id="translated-preview"></div>
+  </div>
+
+  <!-- Q3: STDOUT — bottom left -->
+  <div class="section-q3 panel">
+    <div class="panel-header">
+      <span class="panel-title" id="q3-title">STDOUT (HR)</span>
+      <div class="panel-actions">
+        <label class="toggle"><input type="checkbox" id="autoscroll-q3" onchange="saveSettings()"><span class="slider"></span> Scroll</label>
+        <span class="status" id="capture-status"></span>
+      </div>
+    </div>
+    <div class="tts-row" id="tts-row-q4">
+      <button class="btn btn-ghost" id="back-translate-btn" onclick="backTranslate()">Translate</button>
+      <label class="toggle"><input type="checkbox" id="auto-translate-back" onchange="saveSettings()"><span class="slider"></span> Auto</label>
+      <div class="sep"></div>
+      <label>TTS</label>
+      <select id="tts-provider-q4" onchange="onProviderChange('q4')"></select>
+      <select id="tts-model-q4"></select>
+      <select id="tts-voice-q4"></select>
+      <button class="btn btn-ghost" onclick="playTTS('left')">&#9654;</button>
+      <button class="btn btn-ghost" onclick="pauseTTS()">||</button>
+      <button class="btn btn-ghost" onclick="stopTTS()">&#9632;</button>
+      <label class="toggle"><input type="checkbox" id="auto-backtranslate" onchange="toggleAutoTTSLoop()"><span class="slider"></span> Auto TTS</label>
+      <label class="toggle"><input type="checkbox" id="tts-filter-q4" onchange="saveSettings()"><span class="slider"></span> Filter: mute code</label>
+      <label class="toggle"><input type="checkbox" id="tts-chunk-q4" onchange="saveSettings()"><span class="slider"></span> Chunk</label>
+      <span class="status" id="tts-status-q4"></span>
+    </div>
+    <div class="quad-text" id="output-raw"></div>
+    <div class="key-row">
+      <button class="btn btn-ghost" onclick="sendKey('Up')">&#9650; Up</button>
+      <button class="btn btn-ghost" onclick="sendKey('Down')">&#9660; Down</button>
+      <button class="btn btn-ghost" onclick="sendKey('Enter')">&#9166; Enter</button>
+    </div>
+  </div>
+
+  <!-- Q4: STDOUT Translated — bottom right -->
+  <div class="section-q4 panel">
+    <div class="panel-header">
+      <span class="panel-title" id="q4-title">STDOUT Translated (DE)</span>
+      <div class="panel-actions">
+        <label class="toggle"><input type="checkbox" id="autoscroll-q4" onchange="saveSettings()"><span class="slider"></span> Scroll</label>
+        <span class="status" id="backtranslate-status"></span>
+      </div>
+    </div>
+    <div class="tts-row" id="tts-row-q1" style="display:none">
+      <label>TTS</label>
+      <select id="tts-provider-q1" onchange="onProviderChange('q1')"></select>
+      <select id="tts-model-q1"></select>
+      <select id="tts-voice-q1"></select>
+      <button class="btn btn-ghost" onclick="playTTS('q1')">&#9654;</button>
+      <button class="btn btn-ghost" onclick="pauseTTS()">||</button>
+      <button class="btn btn-ghost" onclick="stopTTS()">&#9632;</button>
+      <label class="toggle"><input type="checkbox" id="auto-tts-q1" onchange="saveSettings()"><span class="slider"></span> Auto TTS</label>
+      <label class="toggle"><input type="checkbox" id="tts-filter-q1" onchange="saveSettings()"><span class="slider"></span> Filter: mute code</label>
+      <label class="toggle"><input type="checkbox" id="tts-chunk-q1" onchange="saveSettings()"><span class="slider"></span> Chunk</label>
+      <span class="status" id="tts-status-q1"></span>
+    </div>
+    <div class="quad-text" id="back-translated"></div>
+  </div>
+
+</main>
+
+<div class="school-section collapsed" id="school-section" style="display:none">
+  <div class="school-header" onclick="toggleSchool()">
+    <span class="school-title">🎓 School</span>
+    <label class="toggle" onclick="event.stopPropagation()"><input type="checkbox" id="school-toggle" onchange="toggleSchool()"><span class="slider"></span></label>
+    <select id="school-provider" style="font-size:11px; padding:3px 6px;" onchange="onSchoolProviderChange()"></select>
+    <select id="school-model" style="font-size:11px; padding:3px 6px;"></select>
+    <select id="school-preset" style="font-size:11px; padding:3px 6px;" onchange="onSchoolPresetChange()"></select>
+    <select id="school-level" style="font-size:11px; padding:3px 6px;"></select>
+    <div class="sep"></div>
+    <select id="school-user" style="font-size:11px; padding:3px 6px;" onchange="onSchoolUserChange()"></select>
+    <button class="btn btn-ghost" style="padding:2px 6px; font-size:11px;" onclick="addSchoolUser()">+</button>
+  </div>
+  <div class="school-body" style="display:none">
+    <div class="school-output">
+      <div class="tts-row" id="tts-row-school-sn">
+        <label id="school-label-sn" style="min-width:100px; font-size:10px;">Summary 🇩🇪</label>
+        <span class="school-text native" id="school-sentence-native" style="flex:1;"></span>
+        <select id="tts-provider-school-sn" onchange="onProviderChange('school-sn')"></select>
+        <select id="tts-model-school-sn"></select>
+        <select id="tts-voice-school-sn"></select>
+        <button class="btn btn-ghost" onclick="playSchoolLine('school-sentence-native','school-sn')">&#9654;</button>
+        <button class="btn btn-ghost" onclick="pauseTTS()">||</button>
+        <button class="btn btn-ghost" onclick="stopTTS()">&#9632;</button>
+        <label class="toggle"><input type="checkbox" id="auto-tts-school-sn" onchange="saveSettings()"><span class="slider"></span> Auto</label>
+        <label class="toggle"><input type="checkbox" id="tts-filter-school-sn" onchange="saveSettings()"><span class="slider"></span> Filter: mute code</label>
+        <label class="toggle"><input type="checkbox" id="tts-chunk-school-sn" onchange="saveSettings()"><span class="slider"></span> Chunk</label>
+        <span class="status" id="tts-status-school-sn"></span>
+      </div>
+      <div class="tts-row" id="tts-row-school-sf">
+        <label id="school-label-sf" style="min-width:100px; font-size:10px;">Summary 🇨🇳</label>
+        <span class="school-text foreign" id="school-sentence-foreign" style="flex:1;"></span>
+        <select id="tts-provider-school-sf" onchange="onProviderChange('school-sf')"></select>
+        <select id="tts-model-school-sf"></select>
+        <select id="tts-voice-school-sf"></select>
+        <button class="btn btn-ghost" onclick="playSchoolLine('school-sentence-foreign','school-sf')">&#9654;</button>
+        <button class="btn btn-ghost" onclick="pauseTTS()">||</button>
+        <button class="btn btn-ghost" onclick="stopTTS()">&#9632;</button>
+        <label class="toggle"><input type="checkbox" id="auto-tts-school-sf" onchange="saveSettings()"><span class="slider"></span> Auto</label>
+        <label class="toggle"><input type="checkbox" id="tts-filter-school-sf" onchange="saveSettings()"><span class="slider"></span> Filter: mute code</label>
+        <label class="toggle"><input type="checkbox" id="tts-chunk-school-sf" onchange="saveSettings()"><span class="slider"></span> Chunk</label>
+        <span class="status" id="tts-status-school-sf"></span>
+      </div>
+      <div class="tts-row" id="tts-row-school-wn">
+        <label id="school-label-wn" style="min-width:100px; font-size:10px;">Word 🇩🇪</label>
+        <span class="school-text native" id="school-word-native" style="flex:1;"></span>
+        <select id="tts-provider-school-wn" onchange="onProviderChange('school-wn')"></select>
+        <select id="tts-model-school-wn"></select>
+        <select id="tts-voice-school-wn"></select>
+        <button class="btn btn-ghost" onclick="playSchoolLine('school-word-native','school-wn')">&#9654;</button>
+        <button class="btn btn-ghost" onclick="pauseTTS()">||</button>
+        <button class="btn btn-ghost" onclick="stopTTS()">&#9632;</button>
+        <label class="toggle"><input type="checkbox" id="auto-tts-school-wn" onchange="saveSettings()"><span class="slider"></span> Auto</label>
+        <label class="toggle"><input type="checkbox" id="tts-filter-school-wn" onchange="saveSettings()"><span class="slider"></span> Filter: mute code</label>
+        <label class="toggle"><input type="checkbox" id="tts-chunk-school-wn" onchange="saveSettings()"><span class="slider"></span> Chunk</label>
+        <span class="status" id="tts-status-school-wn"></span>
+      </div>
+      <div class="tts-row" id="tts-row-school-wf">
+        <label id="school-label-wf" style="min-width:100px; font-size:10px;">Word 🇨🇳</label>
+        <span class="school-text foreign" id="school-word-foreign" style="flex:1;"></span>
+        <select id="tts-provider-school-wf" onchange="onProviderChange('school-wf')"></select>
+        <select id="tts-model-school-wf"></select>
+        <select id="tts-voice-school-wf"></select>
+        <button class="btn btn-ghost" onclick="playSchoolLine('school-word-foreign','school-wf')">&#9654;</button>
+        <button class="btn btn-ghost" onclick="pauseTTS()">||</button>
+        <button class="btn btn-ghost" onclick="stopTTS()">&#9632;</button>
+        <label class="toggle"><input type="checkbox" id="auto-tts-school-wf" onchange="saveSettings()"><span class="slider"></span> Auto</label>
+        <label class="toggle"><input type="checkbox" id="tts-filter-school-wf" onchange="saveSettings()"><span class="slider"></span> Filter: mute code</label>
+        <label class="toggle"><input type="checkbox" id="tts-chunk-school-wf" onchange="saveSettings()"><span class="slider"></span> Chunk</label>
+        <span class="status" id="tts-status-school-wf"></span>
+      </div>
+    </div>
+    <div id="school-history" style="max-height:180px; overflow-y:auto; margin-top:8px; border-top:1px solid var(--border); padding-top:6px;"></div>
+  </div>
+</div>
+
+<div id="console-panel">
+  <div id="console-log"></div>
+</div>
+
+<script src="/static/config.js"></script>
+<script>
+  const API = window.location.origin;
+  function readJsonSetting(key, fallback) {
+    try {
+      return JSON.parse(localStorage.getItem(key) || JSON.stringify(fallback));
+    } catch(e) {
+      localStorage.removeItem(key);
+      return fallback;
+    }
+  }
+  let lastTranslation = '';
+  let lastTargetLang = '';
+
+  // ── Quadrant text state ──
+  const Q = { q1: '', q2: '', q3: '', q4: '', schoolForeign: '', schoolForeignWord: '', schoolNative: '', schoolNativeWord: '' };
+  function setQ(key, text) {
+    Q[key] = text;
+    const map = {
+      q1: () => { document.getElementById('user-input').value = text; },
+      q2: () => { document.getElementById('translated-preview').textContent = text; },
+      q3: () => {
+        const el = document.getElementById('output-raw');
+        el.textContent = text;
+        if (document.getElementById('autoscroll-q3')?.checked) el.scrollTop = el.scrollHeight;
+      },
+      q4: () => {
+        const el = document.getElementById('back-translated');
+        el.textContent = text;
+        if (document.getElementById('autoscroll-q4')?.checked) el.scrollTop = el.scrollHeight;
+      },
+      schoolForeign: () => { document.getElementById('school-sentence-foreign').textContent = text; },
+      schoolForeignWord: () => { document.getElementById('school-word-foreign').textContent = text; },
+      schoolNative: () => { document.getElementById('school-sentence-native').textContent = text; },
+      schoolNativeWord: () => { document.getElementById('school-word-native').textContent = text; },
+    };
+    if (map[key]) map[key]();
+  }
+  let ttsProviderIds = [];
+  const discoveryData = {};
+  let currentSessionId = null;
+  let lastCapturedText = '';
+  let chatProviders = [];
+  let translatorProviders = [];
+  let tmuxPanes = [];
+  let paneProfiles = [];
+  let useTmux = false;
+  let currentBackend = '';  // 'tmux' or provider id like 'xai','google','openai','litellm'
+  let _deeplFallbackDone = false;  // auto-switch away from DeepL only once per session
+  // directives: [{src: "Antworte kurz", translated: "Odgovorite kratko"}]
+  let directives = readJsonSetting('ct_directives', []);
+  // Migrate old string format to object format
+  if (directives.length > 0 && typeof directives[0] === 'string') {
+    directives = directives.map(d => ({ src: d, translated: d }));
+    localStorage.setItem('ct_directives', JSON.stringify(directives));
+  }
+
+  // ── Directives ──
+  function saveDirectives() {
+    localStorage.setItem('ct_directives', JSON.stringify(directives));
+  }
+
+  function appendDirectiveTag(container, text, index) {
+    const tag = document.createElement('span');
+    tag.className = 'directive-tag';
+    tag.appendChild(document.createTextNode(text || '...'));
+    const button = document.createElement('button');
+    button.type = 'button';
+    button.textContent = '\u00d7';
+    button.addEventListener('click', () => removeDirective(index));
+    tag.appendChild(button);
+    container.appendChild(tag);
+  }
+
+  function renderDirectives() {
+    const isChat = currentBackend && currentBackend !== 'tmux';
+    // Q1: source language tags
+    const list1 = document.getElementById('directives-list');
+    list1.replaceChildren();
+    directives.forEach((d, i) => {
+      appendDirectiveTag(list1, d.src, i);
+    });
+    // Q2: translated tags
+    const list2 = document.getElementById('directives-list-q2');
+    list2.replaceChildren();
+    if (isChat && directives.length > 0) {
+      list2.style.display = 'flex';
+      directives.forEach((d, i) => {
+        appendDirectiveTag(list2, d.translated || '...', i);
+      });
+    } else {
+      list2.style.display = 'none';
+    }
+  }
+
+  async function addDirective() {
+    const input = document.getElementById('directive-input');
+    const text = input.value.trim();
+    if (!text) return;
+    input.value = '';
+    // Translate to target language
+    const tgtLang = document.getElementById('tgt-lang').value;
+    const srcLang = document.getElementById('src-lang').value || null;
+    let translated = text;
+    try {
+      const d = await translateText(text, srcLang, tgtLang, 'directive');
+      if (d.translation) translated = d.translation;
+    } catch(e) {}
+    directives.push({ src: text, translated });
+    saveDirectives();
+    renderDirectives();
+  }
+
+  function removeDirective(i) {
+    directives.splice(i, 1);
+    saveDirectives();
+    renderDirectives();
+  }
+
+  async function retranslateDirectives() {
+    if (directives.length === 0) return;
+    const tgtLang = document.getElementById('tgt-lang').value;
+    const srcLang = document.getElementById('src-lang').value || null;
+    for (const d of directives) {
+      try {
+        const res = await translateText(d.src, srcLang, tgtLang, 'directive');
+        if (res.translation) d.translated = res.translation;
+      } catch(e) {}
+    }
+    saveDirectives();
+    renderDirectives();
+  }
+
+  document.getElementById('directive-input').addEventListener('keydown', e => {
+    if (e.key === 'Enter') { e.preventDefault(); addDirective(); }
+  });
+
+  function updateDirectivesVisibility() {
+    const isChat = currentBackend && currentBackend !== 'tmux';
+    document.getElementById('directives-row').style.display = isChat ? '' : 'none';
+    document.getElementById('directives-list-q2').style.display = (isChat && directives.length > 0) ? 'flex' : 'none';
+  }
+
+  // ── Auto-refresh ──
+  let autoRefreshTimer = null;
+
+  // ── Lang labels ──
+  const langFlags = {
+    '': 'Auto', 'DE': 'DE', 'EN': 'EN', 'EN-US': 'EN',
+    'HR': 'HR', 'ES': 'ES', 'FR': 'FR', 'IT': 'IT',
+    'PT': 'PT', 'PT-BR': 'PT', 'RU': 'RU', 'TR': 'TR',
+    'PL': 'PL', 'NL': 'NL', 'SV': 'SV', 'CS': 'CS',
+    'SK': 'SK', 'SL': 'SL', 'RO': 'RO', 'HU': 'HU',
+    'UK': 'UK', 'BG': 'BG', 'ZH': 'ZH', 'JA': 'JA', 'KO': 'KO'
+  };
+
+  function getTranslatorProvider() {
+    return document.getElementById('translator-provider')?.value || '';
+  }
+
+  function getTranslatorModel() {
+    return document.getElementById('translator-model')?.value || null;
+  }
+
+  function getTranslatorConfig() {
+    const provider = getTranslatorProvider();
+    const info = translatorProviders.find(p => p.id === provider) || null;
+    return {
+      provider,
+      kind: info?.kind || '',
+      model: info?.kind === 'llm' ? getTranslatorModel() : null,
+    };
+  }
+
+  async function translateText(text, sourceLang, targetLang, ctx) {
+    const cfg = getTranslatorConfig();
+    if (!cfg.provider) return { error: 'No translator configured' };
+    try {
+      const r = await fetch(`${API}/translate`, {
+        method: 'POST', headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({
+          text,
+          source_lang: sourceLang || null,
+          target_lang: targetLang,
+          provider: cfg.provider,
+          model: cfg.model,
+          ctx: ctx || '',
+        })
+      });
+      const d = await r.json().catch(() => ({}));
+      if (!r.ok) {
+        const err = d.detail || d.error || 'Translate error';
+        // Auto-fallback: switch away from DeepL once per session when keys exhausted
+        if (!_deeplFallbackDone && cfg.provider === 'deepl' && /exhausted|456/i.test(err)) {
+          const fallback = translatorProviders.find(p => p.kind === 'llm');
+          if (fallback) {
+            _deeplFallbackDone = true;
+            const provSel = document.getElementById('translator-provider');
+            provSel.value = fallback.id;
+            onTranslatorProviderChange(false);
+            console.log(`[DeepL] keys exhausted, auto-switched to ${fallback.name}`);
+            return translateText(text, sourceLang, targetLang);
+          }
+        }
+        return { error: err };
+      }
+      return d;
+    } catch(e) {
+      return { error: 'Translate error' };
+    }
+  }
+
+  async function loadTranslatorProviders() {
+    const providerSel = document.getElementById('translator-provider');
+    const saved = localStorage.getItem('ct_translator_provider') || '';
+    try {
+      const r = await fetch(`${API}/translate/providers`);
+      const d = await r.json();
+      translatorProviders = d.providers || [];
+    } catch(e) {
+      translatorProviders = [];
+    }
+
+    providerSel.innerHTML = '';
+    translatorProviders.forEach(p => providerSel.appendChild(new Option(p.name, p.id)));
+    if (saved && [...providerSel.options].some(o => o.value === saved)) {
+      providerSel.value = saved;
+    } else if ([...providerSel.options].some(o => o.value === 'deepl')) {
+      providerSel.value = 'deepl';
+    } else if (providerSel.options.length > 0) {
+      providerSel.selectedIndex = 0;
+    }
+    onTranslatorProviderChange(true);
+  }
+
+  function onTranslatorProviderChange(restoring) {
+    const cfg = getTranslatorConfig();
+    const provider = translatorProviders.find(p => p.id === cfg.provider) || null;
+    const modelSel = document.getElementById('translator-model');
+    const quota = document.getElementById('deepl-quota');
+
+    modelSel.innerHTML = '';
+    if (provider?.kind === 'llm') {
+      const models = provider.models || [];
+      models.forEach(m => modelSel.appendChild(new Option(m, m)));
+      const savedModel = localStorage.getItem('ct_translator_model') || provider.default_model || '';
+      if (savedModel && [...modelSel.options].some(o => o.value === savedModel)) {
+        modelSel.value = savedModel;
+      }
+      modelSel.style.display = '';
+      quota.style.display = 'none';
+    } else {
+      modelSel.style.display = 'none';
+      quota.style.display = provider ? '' : 'none';
+    }
+
+    if (!restoring) saveSettings();
+    updateQuota();
+  }
+
+  function updateQuadrantTitles() {
+    const srcSel = document.getElementById('src-lang');
+    const tgtSel = document.getElementById('tgt-lang');
+    if (!srcSel || !tgtSel) return;
+    const srcLabel = srcSel.selectedOptions[0]?.textContent || 'Auto';
+    const tgtLabel = tgtSel.selectedOptions[0]?.textContent || '?';
+    document.getElementById('q1-title').textContent = `STDIN (${srcLabel})`;
+    document.getElementById('q2-title').textContent = `STDIN Translated (${tgtLabel})`;
+    document.getElementById('q3-title').textContent = `STDOUT (${tgtLabel})`;
+    document.getElementById('q4-title').textContent = `STDOUT Translated (${srcLabel})`;
+    // School line labels
+    const tgtFlag = tgtLabel.split(' ')[0] || '';
+    const srcFlag = srcLabel.split(' ')[0] || '';
+    const lsn = document.getElementById('school-label-sn');
+    const lsf = document.getElementById('school-label-sf');
+    const lwn = document.getElementById('school-label-wn');
+    const lwf = document.getElementById('school-label-wf');
+    if (lsn) lsn.textContent = `Summary ${srcFlag}`;
+    if (lsf) lsf.textContent = `Summary ${tgtFlag}`;
+    if (lwn) lwn.textContent = `Word ${srcFlag}`;
+    if (lwf) lwf.textContent = `Word ${tgtFlag}`;
+  }
+
+  // ── Settings ──
+  function saveSettings() {
+    if (currentBackend === 'tmux') localStorage.setItem('ct_pane', getSelectedPane());
+    const _v = id => document.getElementById(id)?.value || '';
+    const _c = id => document.getElementById(id)?.checked ? '1' : '';
+    localStorage.setItem('ct_tgt',   _v('tgt-lang'));
+    localStorage.setItem('ct_src',   _v('src-lang'));
+    localStorage.setItem('ct_translator_provider', _v('translator-provider'));
+    localStorage.setItem('ct_translator_model', _v('translator-model'));
+    localStorage.setItem('ct_auto',  _c('auto-refresh'));
+    localStorage.setItem('ct_tts_autoplay', _c('tts-autoplay'));
+    localStorage.setItem('ct_auto_bt', _c('auto-translate-back'));
+    localStorage.setItem('ct_auto_tts_loop', _c('auto-backtranslate'));
+    localStorage.setItem('ct_auto_tts_q1', _c('auto-tts-q1'));
+    for (const k of ['sn','sf','wn','wf']) localStorage.setItem(`ct_auto_tts_school_${k}`, _c(`auto-tts-school-${k}`));
+    localStorage.setItem('ct_autoscroll_q3', _c('autoscroll-q3'));
+    localStorage.setItem('ct_autoscroll_q4', _c('autoscroll-q4'));
+    localStorage.setItem('ct_context', _c('context-toggle'));
+    localStorage.setItem('ct_lines', _v('capture-lines') || '80');
+    ['right', 'q4', 'q1', 'q1-input', 'school-sn', 'school-sf', 'school-wn', 'school-wf'].forEach(side => {
+      const p = document.getElementById(`tts-provider-${side}`);
+      const m = document.getElementById(`tts-model-${side}`);
+      const v = document.getElementById(`tts-voice-${side}`);
+      const f = document.getElementById(`tts-filter-${side}`);
+      if (p) localStorage.setItem(`ct_tts_provider_${side}`, p.value);
+      if (m) localStorage.setItem(`ct_tts_model_${side}`, m.value);
+      if (v) localStorage.setItem(`ct_tts_voice_${side}`, v.value);
+      if (f) localStorage.setItem(`ct_tts_filter_${side}`, f.checked ? '1' : '');
+      const ch = document.getElementById(`tts-chunk-${side}`);
+      if (ch) localStorage.setItem(`ct_tts_chunk_${side}`, ch.checked ? '1' : '');
+    });
+  }
+
+  function loadSettings() {
+    const _set = (id, val) => { const el = document.getElementById(id); if (el && val) el.value = val; };
+    const _chk = (id, key) => { const el = document.getElementById(id); if (el && localStorage.getItem(key)) el.checked = true; };
+    _set('tgt-lang', localStorage.getItem('ct_tgt'));
+    _set('src-lang', localStorage.getItem('ct_src'));
+    _chk('auto-refresh', 'ct_auto');
+    _chk('tts-autoplay', 'ct_tts_autoplay');
+    _chk('auto-translate-back', 'ct_auto_bt');
+    _chk('auto-backtranslate', 'ct_auto_tts_loop');
+    _chk('auto-tts-q1', 'ct_auto_tts_q1');
+    for (const k of ['sn','sf','wn','wf']) _chk(`auto-tts-school-${k}`, `ct_auto_tts_school_${k}`);
+    _chk('autoscroll-q3', 'ct_autoscroll_q3');
+    _chk('autoscroll-q4', 'ct_autoscroll_q4');
+    _chk('context-toggle', 'ct_context');
+    _set('capture-lines', localStorage.getItem('ct_lines'));
+    updateQuadrantTitles();
+  }
+
+  function restoreTTSSettings(side) {
+    const p = localStorage.getItem(`ct_tts_provider_${side}`);
+    if (p) {
+      const sel = document.getElementById(`tts-provider-${side}`);
+      if ([...sel.options].some(o => o.value === p)) sel.value = p;
+    }
+    onProviderChange(side, true);
+    const f = localStorage.getItem(`ct_tts_filter_${side}`);
+    const fEl = document.getElementById(`tts-filter-${side}`);
+    if (fEl && f) fEl.checked = true;
+    const c = localStorage.getItem(`ct_tts_chunk_${side}`);
+    const cEl = document.getElementById(`tts-chunk-${side}`);
+    if (cEl && c) cEl.checked = true;
+  }
+
+  // ── Load panes ──
+  async function loadAppConfig() {
+    try {
+      const r = await fetch(`${API}/app/config`);
+      const d = await r.json();
+      useTmux = !!d.useTmux;
+    } catch(e) {
+      useTmux = false;
+    }
+  }
+
+  async function loadPanes() {
+    if (!useTmux) {
+      tmuxPanes = [];
+      return;
+    }
+    try {
+      const r = await fetch(`${API}/panes`);
+      const d = await r.json();
+      tmuxPanes = d.panes || [];
+    } catch(e) {
+      tmuxPanes = [];
+    }
+  }
+
+  async function loadPaneProfiles() {
+    if (!useTmux) {
+      paneProfiles = [];
+      return;
+    }
+    try {
+      const r = await fetch(`${API}/panes/profiles`);
+      const d = await r.json();
+      paneProfiles = (d.profiles || []).map(p => (
+        typeof p === 'string' ? { id: p, label: p } : p
+      ));
+    } catch(e) {
+      paneProfiles = [];
+    }
+  }
+
+  function renderPaneProfileButtons() {
+    // no-op: profiles are now in the backend-target dropdown
+  }
+
+  // ── Backend system ──
+  async function loadBackends() {
+    await loadAppConfig();
+    await Promise.all([loadPanes(), loadPaneProfiles(), loadChatProviders()]);
+    renderPaneProfileButtons();
+    buildBackendDropdown();
+    const saved = localStorage.getItem('ct_backend');
+    if (saved) {
+      const sel = document.getElementById('backend-select');
+      if ([...sel.options].some(o => o.value === saved)) {
+        sel.value = saved;
+        onBackendChange(true);
+        return;
+      }
+    }
+    if (saved === 'tmux' && !useTmux) localStorage.removeItem('ct_backend');
+    onBackendChange(true);
+  }
+
+  function buildBackendDropdown() {
+    const sel = document.getElementById('backend-select');
+    sel.innerHTML = '<option value="">\u2014 Backend \u2014</option>';
+    if (useTmux) sel.appendChild(new Option('tmux', 'tmux'));
+    chatProviders.forEach(p => sel.appendChild(new Option(p.name, p.id)));
+  }
+
+  function onBackendChange(restoring) {
+    const prevBackend = currentBackend;
+    currentBackend = document.getElementById('backend-select').value;
+    // Clear output quadrants when actively switching backend
+    if (!restoring && prevBackend !== currentBackend) {
+      setQ('q3', ''); setQ('q4', '');
+      lastCapturedText = '';
+      currentSessionId = null;
+    }
+    const target = document.getElementById('backend-target');
+    const captureBtn = document.getElementById('capture-btn');
+    const clearBtn = document.getElementById('chat-clear-btn');
+    const linesGroup = document.getElementById('tmux-lines-group');
+    const codeBtn = document.getElementById('code-btn');
+    const autoRefreshLabel = document.getElementById('auto-refresh-label');
+
+    target.innerHTML = '';
+
+    if (currentBackend === 'tmux' && useTmux) {
+      // Show existing tmux sessions/panes
+      target.appendChild(new Option('\u2014 tmux pane \u2014', ''));
+      const saved = localStorage.getItem('ct_pane') || '';
+      tmuxPanes.forEach(p => {
+        const id = p.split(' ')[0];
+        const opt = new Option(p, id);
+        if (id === saved) opt.selected = true;
+        target.appendChild(opt);
+      });
+      // Add pane profiles as "new ..." options
+      if (paneProfiles.length > 0) {
+        const sep = new Option('\u2500\u2500 create \u2500\u2500', '');
+        sep.disabled = true;
+        target.appendChild(sep);
+        paneProfiles.forEach(profile => {
+          target.appendChild(new Option('new ' + (profile.label || profile.id), 'new:' + profile.id));
+        });
+      }
+      target.style.display = '';
+      captureBtn.style.display = '';
+      clearBtn.style.display = 'none';
+      linesGroup.style.display = '';
+      codeBtn.style.display = '';
+      if (autoRefreshLabel) autoRefreshLabel.style.display = '';
+    } else if (currentBackend) {
+      // Show LLM models
+      const prov = chatProviders.find(p => p.id === currentBackend);
+      if (prov) {
+        const savedModel = localStorage.getItem('ct_chat_model') || '';
+        prov.models.forEach(m => {
+          const opt = new Option(m, m);
+          if (m === savedModel) opt.selected = true;
+          target.appendChild(opt);
+        });
+      }
+      target.style.display = '';
+      captureBtn.style.display = 'none';
+      clearBtn.style.display = '';
+      linesGroup.style.display = 'none';
+      codeBtn.style.display = 'none';
+      if (autoRefreshLabel) autoRefreshLabel.style.display = 'none';
+    } else {
+      target.style.display = 'none';
+      captureBtn.style.display = 'none';
+      clearBtn.style.display = 'none';
+      linesGroup.style.display = 'none';
+      codeBtn.style.display = 'none';
+      if (autoRefreshLabel) autoRefreshLabel.style.display = 'none';
+    }
+
+    if (!restoring) localStorage.setItem('ct_backend', currentBackend);
+    updateDirectivesVisibility();
+    renderDirectives();
+    updateDirectToggleVisibility();
+    updateButtonStates();
+    ConfigPanel.updatePill();
+  }
+
+  function onTargetChange() {
+    if (currentBackend === 'tmux') {
+      const newPane = document.getElementById('backend-target').value;
+      // Handle "new:profileId" — create pane and return
+      if (newPane.startsWith('new:')) {
+        createPane(newPane.slice(4));
+        return;
+      }
+      localStorage.setItem('ct_pane', newPane);
+      // Auto-capture to show pane content in Q3 and start auto-refresh
+      if (newPane) {
+        capturePane();
+        document.getElementById('auto-refresh').checked = true;
+        setAutoRefresh(true);
+      }
+    } else if (currentBackend) {
+      localStorage.setItem('ct_chat_model', document.getElementById('backend-target').value);
+    }
+    updateButtonStates();
+    ConfigPanel.updatePill();
+  }
+
+  async function refreshBackend() {
+    // Re-discover LiteLLM models in backend, then reload frontend lists
+    try {
+      await fetch(`${API}/chat/rediscover`, { method: 'POST' });
+    } catch(e) {}
+    await loadBackends();
+  }
+
+  async function createPane(user) {
+    if (!useTmux) return;
+    try {
+      const r = await fetch(`${API}/panes/create`, {
+        method: 'POST', headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({ user })
+      });
+      const d = await r.json();
+      if (!r.ok) { alert(d.detail || 'Error'); return; }
+      // Refresh pane list and select the new pane
+      await loadPanes();
+      buildBackendDropdown();
+      document.getElementById('backend-select').value = 'tmux';
+      onBackendChange(true);
+      const target = document.getElementById('backend-target');
+      if ([...target.options].some(o => o.value === d.pane)) {
+        target.value = d.pane;
+        localStorage.setItem('ct_pane', d.pane);
+        // Wait for TUI to start, then capture
+        setTimeout(() => {
+          capturePane();
+          document.getElementById('auto-refresh').checked = true;
+          setAutoRefresh(true);
+        }, 2000);
+      }
+    } catch(e) { alert('Error creating pane'); }
+  }
+
+  function getSelectedPane() {
+    if (useTmux && currentBackend === 'tmux') return document.getElementById('backend-target').value;
+    return '';
+  }
+
+  function getSelectedChatProvider() {
+    if (currentBackend && currentBackend !== 'tmux') return currentBackend;
+    return '';
+  }
+
+  function getSelectedModel() {
+    if (currentBackend && currentBackend !== 'tmux') return document.getElementById('backend-target').value;
+    return '';
+  }
+
+  // ── Sessions ──
+  async function newSession() {
+    if (!currentBackend) return setStatus('capture-status', 'err', 'Backend?');
+    const pane = getSelectedPane();
+    if (currentBackend === 'tmux' && !pane) return setStatus('capture-status', 'err', 'Pane?');
+    try {
+      const r = await fetch(`${API}/session/new`, {
+        method: 'POST', headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({ pane: pane || '' })
+      });
+      const d = await r.json();
+      currentSessionId = d.id;
+      updateSessionDropdown();
+      setQ('q3', ''); setQ('q4', ''); setQ('q2', '');
+      lastTranslation = '';
+      lastCapturedText = '';
+      setStatus('capture-status', 'ok', `Session ${d.id}`);
+      updateButtonStates();
+      // Start auto-refresh if toggle is on (tmux only)
+      if (currentBackend === 'tmux' && document.getElementById('auto-refresh').checked) {
+        setAutoRefresh(true);
+      }
+    } catch(e) {
+      setStatus('capture-status', 'err', 'Error');
+    }
+  }
+
+  function updateSessionDropdown() {
+    // No-op: session dropdown removed, sessions are auto-created
+  }
+
+  async function refreshSessionView() {
+    if (!currentSessionId) return;
+    try {
+      const r = await fetch(`${API}/session/${currentSessionId}`);
+      if (r.status === 400 || r.status === 404) {
+        await newSession();
+        return;
+      }
+      const d = await r.json();
+      const text = d.lines.join('\n');
+      setQ('q3', text);
+      updateButtonStates();
+    } catch(e) {}
+  }
+
+  async function captureSession() {
+    if (!currentSessionId) return;
+    setStatus('capture-status', 'loading', '...');
+    try {
+      const r = await fetch(`${API}/session/${currentSessionId}/capture`, { method: 'POST' });
+      if (r.status === 400 || r.status === 404) {
+        // Session lost (server restart) — auto-create new one
+        console.log('[captureSession] session lost, creating new');
+        await newSession();
+        return;
+      }
+      const d = await r.json();
+      if (d.changed) {
+        await refreshSessionView();
+        setStatus('capture-status', 'ok', `+${d.new_lines?.length || 0}`);
+        // Auto-translate if toggle is on (but not if TTS loop handles it)
+        if (document.getElementById('auto-translate-back').checked && !ttsLoopActive) {
+          backTranslate();
+        }
+      } else {
+        setStatus('capture-status', '', '');
+      }
+    } catch(e) {
+      setStatus('capture-status', 'err', 'Error');
+    }
+  }
+
+  // ── Capture pane ──
+  async function capturePane() {
+    if (currentBackend !== 'tmux') return;  // only tmux captures
+    if (currentSessionId) return captureSession();
+    const pane = getSelectedPane();
+    if (!pane) return setStatus('capture-status', 'err', 'Pane?');
+    setStatus('capture-status', 'loading', '...');
+    try {
+      const r = await fetch(`${API}/capture`, {
+        method: 'POST', headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({ pane, lines: parseInt(document.getElementById('capture-lines').value) || 80, ctx: 'Q3' })
+      });
+      const d = await r.json();
+      const text = d.text;
+      const changed = text !== lastCapturedText;
+      lastCapturedText = text;
+      setQ('q3', text);
+      setStatus('capture-status', changed ? 'ok' : '', changed ? 'OK' : '');
+      updateButtonStates();
+      if (changed && document.getElementById('auto-translate-back').checked) backTranslate();
+    } catch(e) {
+      setStatus('capture-status', 'err', 'Fehler');
+    }
+  }
+
+  // ── Translate input ──
+  async function translateInput() {
+    Q.q1 = document.getElementById('user-input').value.trim();
+    if (!Q.q1) return;
+    setStatus('input-status', 'loading', '...');
+    setQ('q2', ''); setQ('q3', ''); setQ('q4', '');
+    setQ('schoolForeign', ''); setQ('schoolForeignWord', '');
+    setQ('schoolNative', ''); setQ('schoolNativeWord', '');
+    const tgtLang = document.getElementById('tgt-lang').value;
+    try {
+      const d = await translateText(
+        Q.q1,
+        document.getElementById('src-lang').value || null,
+        tgtLang,
+        'Q1→Q2'
+      );
+      if (d.error) { setStatus('input-status', 'err', d.error); return; }
+      lastTranslation = d.translation;
+      lastTargetLang = tgtLang;
+      setQ('q2', d.translation);
+      setStatus('input-status', 'ok', '\u2713');
+      updateQuota();
+      if (document.getElementById('tts-autoplay').checked && ttsProviderIds.length > 0) {
+        await playTTS('right');
+      }
+    } catch(e) {
+      setStatus('input-status', 'err', 'Fehler');
+    }
+  }
+
+  // ── Back-translate (manual, last 30 lines) ──
+  async function backTranslate() {
+    if (!Q.q3.trim()) return;
+    const outputText = Q.q3.trim();
+    const lines = outputText.split('\n');
+    const tail = lines.slice(-30).join('\n').trim();
+    if (!tail) return;
+    const tgtLang = document.getElementById('tgt-lang').value;
+    const srcLang = document.getElementById('src-lang').value || 'DE';
+    setStatus('backtranslate-status', 'loading', '...');
+    try {
+      const d = await translateText(
+        tail,
+        tgtLang.replace('-US', '').replace('-BR', ''),
+        srcLang || 'DE',
+        'Q3→Q4'
+      );
+      if (d.error) { setStatus('backtranslate-status', 'err', d.error); return; }
+      setQ('q4', d.translation);
+      setStatus('backtranslate-status', 'ok', '\u2713');
+      updateQuota();
+    } catch(e) {
+      setStatus('backtranslate-status', 'err', 'Error');
+    }
+  }
+
+  // ── Auto TTS Loop (capture → readable → translate → speak → mark → 5s pause) ──
+  let ttsLoopActive = false;
+  let ttsLoopSpeaking = false;
+  let ttsLoopTimer = null;
+
+  function toggleAutoTTSLoop() {
+    const on = document.getElementById('auto-backtranslate').checked;
+    saveSettings();
+    if (!on) {
+      ttsLoopActive = false;
+      clearTimeout(ttsLoopTimer);
+      ttsLoopTimer = null;
+      return;
+    }
+    if (!currentSessionId) {
+      setStatus('tts-status-q4', 'err', 'Session?');
+      document.getElementById('auto-backtranslate').checked = false;
+      return;
+    }
+    // Only start the capture loop for tmux — chat backends use autoPlayOutput() after each send
+    if (currentBackend === 'tmux') {
+      ttsLoopActive = true;
+      ttsLoopTick();
+    }
+  }
+
+  async function ttsLoopTick() {
+    if (!ttsLoopActive || !currentSessionId) return;
+    if (ttsBusy) { scheduleNextTick(); return; }
+
+    try {
+      // 1. Capture new lines from tmux
+      await fetch(`${API}/session/${currentSessionId}/capture`, { method: 'POST' });
+      await refreshSessionView();
+
+      // 2. Get readable lines since last TTS position
+      const rr = await fetch(`${API}/session/${currentSessionId}/readable`);
+      const rd = await rr.json();
+      if (rd.error || !rd.text || rd.readable_count === 0) {
+        scheduleNextTick();
+        return;
+      }
+
+      // 3. Back-translate the readable block
+      const tgtLang = document.getElementById('tgt-lang').value;
+      const srcLang = document.getElementById('src-lang').value || 'DE';
+      setStatus('backtranslate-status', 'loading', '...');
+
+      const td = await translateText(
+        rd.text,
+        tgtLang.replace('-US', '').replace('-BR', ''),
+        srcLang || 'DE',
+        'Q3→Q4'
+      );
+      if (td.error) {
+        setStatus('backtranslate-status', 'err', td.error);
+        scheduleNextTick();
+        return;
+      }
+
+      // Show translation in Q4
+      setQ('q4', Q.q4 + (Q.q4 ? '\n' : '') + td.translation);
+      setStatus('backtranslate-status', 'ok', '\u2713');
+
+      // 4+5. Auto-play Q3 + Q4 (translation already done above)
+      await autoPlayOutput(true);
+
+      // 6. Mark position as read
+      await fetch(`${API}/session/${currentSessionId}/mark-read?position=${rd.to}`, { method: 'POST' });
+
+    } catch(e) {
+      setStatus('backtranslate-status', 'err', 'Loop error');
+    }
+
+    scheduleNextTick();
+  }
+
+  function scheduleNextTick() {
+    if (!ttsLoopActive) return;
+    ttsLoopTimer = setTimeout(ttsLoopTick, 5000);
+  }
+
+  // ── Auto-play Q3 + Q4 after new output arrives ──
+  // Order: translate Q3→Q4, then speak Q3, then speak Q4
+  // skipTranslate=true when caller already did back-translation (e.g. ttsLoopTick)
+  async function autoPlayOutput(skipTranslate) {
+    // 1. Always translate Q3→Q4
+    if (!skipTranslate && Q.q3.trim()) await backTranslate();
+    // 2. Speak Q3 (foreign language)
+    if (ttsProviderIds.length > 0 && document.getElementById('auto-backtranslate')?.checked && document.getElementById('tts-provider-q4')?.value) {
+      await playTTS('left');
+    }
+    // 3. Speak Q4 (mother tongue)
+    if (ttsProviderIds.length > 0 && document.getElementById('auto-tts-q1')?.checked && document.getElementById('tts-provider-q1')?.value) {
+      await playTTS('q1');
+    }
+    // 4. School: generate lesson from Q2+Q3, then TTS
+    const q2Text = Q.q2.trim();
+    const q3Text = Q.q3.trim().split('\n').slice(-15).join('\n');
+    console.log('[autoPlayOutput] school check: schoolActive=', schoolActive, 'q2=', q2Text.length, 'q3=', q3Text.length);
+    if (q2Text && q3Text) await runSchool(q2Text, q3Text);
+  }
+
+  // ── Translate & Send ──
+  async function translateAndSend() {
+    if (isDirectMode()) {
+      // Direct mode: take Q2 text directly, skip translation
+      const directText = document.getElementById('translated-preview').textContent.trim();
+      if (!directText) return;
+      setQ('q2', directText);
+      setQ('q3', ''); setQ('q4', '');
+      setQ('schoolForeign', ''); setQ('schoolForeignWord', '');
+      setQ('schoolNative', ''); setQ('schoolNativeWord', '');
+      const chatPid = getSelectedChatProvider();
+      if (!chatPid) return;
+      setStatus('input-status', 'loading', '...');
+      const reply = await sendToChat(directText);
+      if (!reply) return;
+      setQ('q3', reply);
+      setStatus('input-status', 'ok', 'Sent');
+      updateButtonStates();
+      await autoPlayOutput();
+      setQ('q2', '');
+      updateButtonStates();
+      return;
+    }
+
+    Q.q1 = document.getElementById('user-input').value.trim();
+    if (!Q.q1) return;
+    // Always translate fresh — the input text may have changed
+    await translateInput();
+    if (!lastTranslation) return;
+
+    const chatPid = getSelectedChatProvider();
+
+    if (chatPid) {
+      // ── Chat mode: send to LLM ──
+      setStatus('input-status', 'loading', '...');
+      const reply = await sendToChat(lastTranslation);
+      if (!reply) return;
+      setQ('q3', Q.q3 + (Q.q3.trim() ? '\n\n' : '') + reply);
+      setStatus('input-status', 'ok', 'Sent');
+      setQ('q1', '');
+      lastTranslation = '';
+      updateButtonStates();
+      await autoPlayOutput();
+    } else {
+      // ── tmux mode: send to pane ──
+      const pane = getSelectedPane();
+      if (!pane) return setStatus('input-status', 'err', 'Pane?');
+      setStatus('input-status', 'loading', '...');
+      try {
+        const r = await fetch(`${API}/send`, {
+          method: 'POST', headers: {'Content-Type': 'application/json'},
+          body: JSON.stringify({ pane, text: lastTranslation, ctx: 'Q2→tmux' })
+        });
+        if (!r.ok) {
+          const d = await r.json().catch(() => ({}));
+          throw new Error(d.detail || 'Send failed');
+        }
+        setStatus('input-status', 'ok', 'Sent');
+        setQ('q1', '');
+        lastTranslation = '';
+        updateButtonStates();
+        setTimeout(async () => {
+          if (currentSessionId) await captureSession();
+          else await capturePane();
+          await autoPlayOutput();
+        }, 1000);
+      } catch(e) {
+        setStatus('input-status', 'err', 'Sendefehler');
+      }
+    }
+  }
+
+  function clearInput() {
+    setQ('q1', ''); setQ('q2', '');
+    lastTranslation = '';
+    setStatus('input-status', '', '');
+  }
+
+  // ── Direct mode ──
+  function isDirectMode() {
+    return document.getElementById('direct-toggle').checked;
+  }
+
+  function onDirectToggle() {
+    const direct = isDirectMode();
+    localStorage.setItem('ct_direct', direct ? '1' : '');
+    applyDirectMode();
+    saveSettings();
+  }
+
+  function applyDirectMode() {
+    const direct = isDirectMode();
+    const q1Panel = document.querySelector('.section-q1');
+    const q2Preview = document.getElementById('translated-preview');
+    const translateBtn = document.querySelector('.btn-accent[onclick*="translateInput"]');
+
+    if (direct) {
+      // Hide Q1, make Q2 editable
+      q1Panel.style.display = 'none';
+      q2Preview.setAttribute('contenteditable', 'true');
+      q2Preview.style.cursor = 'text';
+      q2Preview.style.outline = 'none';
+      if (translateBtn) translateBtn.style.display = 'none';
+    } else {
+      q1Panel.style.display = '';
+      q2Preview.removeAttribute('contenteditable');
+      q2Preview.style.cursor = '';
+      if (translateBtn) translateBtn.style.display = '';
+    }
+    updateButtonStates();
+  }
+
+  function updateDirectToggleVisibility() {
+    const isChat = currentBackend && currentBackend !== 'tmux';
+    const dtl = document.getElementById('direct-toggle-label');
+    if (dtl) dtl.style.display = isChat ? '' : 'none';
+    if (!isChat && isDirectMode()) {
+      document.getElementById('direct-toggle').checked = false;
+      applyDirectMode();
+    }
+  }
+
+  // ── Code mode: raw Q1→Q3, translate Q3→Q4, skip Q2 + School ──
+  async function sendCode() {
+    Q.q1 = document.getElementById('user-input').value.trim();
+    if (!Q.q1) return;
+    setQ('q2', '');
+    setQ('q3', ''); setQ('q4', '');
+    setQ('schoolForeign', ''); setQ('schoolForeignWord', '');
+    setQ('schoolNative', ''); setQ('schoolNativeWord', '');
+
+    const chatPid = getSelectedChatProvider();
+    if (chatPid) {
+      // LLM: send raw text
+      setStatus('input-status', 'loading', '...');
+      const reply = await sendToChat(Q.q1);
+      if (!reply) return;
+      setQ('q3', reply);
+      setStatus('input-status', 'ok', 'Code sent');
+    } else if (currentBackend === 'tmux') {
+      // tmux: paste raw text
+      const pane = getSelectedPane();
+      if (!pane) return setStatus('input-status', 'err', 'Pane?');
+      setStatus('input-status', 'loading', '...');
+      const r = await fetch(`${API}/send`, {
+        method: 'POST', headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({ pane, text: Q.q1, ctx: 'Q1→tmux' })
+      });
+      if (!r.ok) {
+        const d = await r.json().catch(() => ({}));
+        return setStatus('input-status', 'err', d.detail || 'Send error');
+      }
+      setStatus('input-status', 'ok', 'Code sent');
+      await new Promise(r => setTimeout(r, 1000));
+      if (currentSessionId) await captureSession();
+      else await capturePane();
+    }
+
+    setQ('q1', '');
+    updateButtonStates();
+    // Only back-translate Q3→Q4, no TTS, no School
+    if (Q.q3.trim()) await backTranslate();
+  }
+
+  // ── Keyboard ──
+  document.getElementById('user-input').addEventListener('keydown', e => {
+    if (e.key === 'Enter' && !e.ctrlKey && !e.shiftKey) { e.preventDefault(); translateAndSend(); }
+    if (e.ctrlKey && e.key === 'Enter') { e.preventDefault(); translateInput(); }
+  });
+  document.getElementById('translated-preview').addEventListener('keydown', e => {
+    if (isDirectMode() && e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); translateAndSend(); }
+  });
+
+  // ── Send raw key to pane ──
+  async function sendKey(key) {
+    const pane = getSelectedPane();
+    if (!pane) return setStatus('capture-status', 'err', 'Pane?');
+    const r = await fetch(`${API}/sendkey`, {
+      method: 'POST', headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({ pane, key, ctx: 'tmux' })
+    });
+    if (!r.ok) {
+      const d = await r.json().catch(() => ({}));
+      return setStatus('capture-status', 'err', d.detail || 'Key error');
+    }
+    setTimeout(capturePane, 300);
+  }
+
+  // ── Helpers ──
+  function setStatus(id, type, msg) {
+    const el = document.getElementById(id);
+    el.className = 'status' + (type ? ` ${type}` : '');
+    el.replaceChildren();
+    if (type === 'err') {
+      el.textContent = '\u2717';
+      return;
+    }
+    if (type === 'loading') {
+      const spinner = document.createElement('span');
+      spinner.className = 'spinner';
+      el.appendChild(spinner);
+      el.appendChild(document.createTextNode(msg || ''));
+    } else {
+      el.textContent = msg || '';
+    }
+  }
+
+  // ── Auto-refresh ──
+  function setAutoRefresh(on) {
+    clearInterval(autoRefreshTimer); autoRefreshTimer = null;
+    if (on && currentBackend === 'tmux') {
+      capturePane();
+      autoRefreshTimer = setInterval(capturePane, 5000);
+    }
+  }
+
+  // ── Check connection ──
+  async function checkConnection() {
+    const bar = document.getElementById('check-bar');
+    bar.classList.add('visible');
+    bar.replaceChildren();
+    const spinner = document.createElement('span');
+    spinner.className = 'spinner';
+    bar.appendChild(spinner);
+    bar.appendChild(document.createTextNode(' checking...'));
+
+    const checks = [];
+
+    // Translator providers
+    for (const tp of translatorProviders) {
+      if (tp.kind === 'deepl' || tp.id === 'deepl') {
+        checks.push(fetch(`${API}/usage`).then(r => r.json()).then(d => {
+          if (d.error) return `${tp.name} \u2717 ${(d.error || '').slice(0, 40)}`;
+          if (d.character_count >= d.character_limit) return `${tp.name} \u2717 exhausted`;
+          const pct = Math.round(d.character_count / d.character_limit * 100);
+          return `${tp.name} \u2713 ${pct}%`;
+        }).catch(e => `${tp.name} \u2717 ${e.message?.slice(0, 30) || 'offline'}`));
+      } else {
+        checks.push(fetch(`${API}/translate`, {
+          method: 'POST', headers: {'Content-Type': 'application/json'},
+          body: JSON.stringify({ text: 'hi', target_lang: 'DE', provider: tp.id, model: tp.default_model || null, ctx: 'check' })
+        }).then(r => r.json()).then(d =>
+          !d.error ? `${tp.name} \u2713` : `${tp.name} \u2717 ${(d.error || d.detail || '').slice(0, 40)}`
+        ).catch(e => `${tp.name} \u2717 ${e.message?.slice(0, 30) || 'offline'}`));
+      }
+    }
+
+    // TTS providers
+    for (const p of ttsProviderIds) {
+      const label = {xai:'xAI TTS', elevenlabs:'11Labs', google:'gTTS'}[p] || p;
+      checks.push(fetch(`${API}/tts/check/${p}`).then(async r => {
+        if (r.ok) return `${label} \u2713`;
+        const d = await r.json().catch(() => ({}));
+        return `${label} \u2717 ${(d.detail || d.error || '').slice(0, 40)}`;
+      }).catch(e => `${label} \u2717 ${e.message?.slice(0, 30) || 'offline'}`));
+    }
+
+    // LLM chat providers (skip if already checked as translator)
+    const checkedIds = new Set(translatorProviders.map(tp => tp.id));
+    for (const cp of chatProviders) {
+      if (!checkedIds.has(cp.id)) {
+        checks.push(Promise.resolve(`${cp.name} \u2713`));
+      }
+    }
+
+    const results = await Promise.all(checks);
+
+    bar.replaceChildren();
+    results.forEach((result, i) => {
+      const ok = result.includes('\u2713');
+      const span = document.createElement('span');
+      span.style.color = ok ? 'var(--accent)' : 'var(--warn)';
+      span.textContent = result;
+      if (i > 0) bar.appendChild(document.createTextNode('  '));
+      bar.appendChild(span);
+    });
+  }
+
+  // ── TTS ──
+  async function loadTTSProviders() {
+    try {
+      const r = await fetch(`${API}/tts/providers`);
+      const d = await r.json();
+      ttsProviderIds = d.providers || [];
+    } catch(e) { ttsProviderIds = []; }
+
+    const labels = {xai: 'xAI', elevenlabs: 'ElevenLabs', google: 'Google'};
+
+    for (const side of ['right', 'q4', 'q1', 'q1-input', 'school-sn', 'school-sf', 'school-wn', 'school-wf']) {
+      const row = document.getElementById(`tts-row-${side}`);
+      const sel = document.getElementById(`tts-provider-${side}`);
+      if (ttsProviderIds.length === 0) {
+        if (side === 'right') row.style.display = 'none';
+        continue;
+      }
+      if (row) row.style.display = 'flex';
+      sel.innerHTML = '';
+      ttsProviderIds.forEach(p => sel.appendChild(new Option(labels[p] || p, p)));
+    }
+
+    // Discover all providers in parallel
+    await Promise.all(ttsProviderIds.map(async p => {
+      try {
+        const r = await fetch(`${API}/tts/discover/${p}`);
+        if (r.ok) discoveryData[p] = await r.json();
+      } catch(e) {}
+    }));
+
+    for (const side of ['right', 'q4', 'q1', 'q1-input', 'school-sn', 'school-sf', 'school-wn', 'school-wf']) {
+      restoreTTSSettings(side);
+    }
+  }
+
+  function onProviderChange(side, restoring) {
+    const provider = document.getElementById(`tts-provider-${side}`).value;
+    const modelSel = document.getElementById(`tts-model-${side}`);
+    const voiceSel = document.getElementById(`tts-voice-${side}`);
+    const data = discoveryData[provider] || {};
+
+    const models = data.models || [];
+    modelSel.innerHTML = '';
+    if (models.length === 0) {
+      modelSel.style.display = 'none';
+    } else {
+      modelSel.style.display = '';
+      models.forEach(m => modelSel.appendChild(new Option(m.name, m.id)));
+    }
+
+    const voices = data.voices || [];
+    voiceSel.innerHTML = '';
+    if (voices.length === 0) {
+      voiceSel.style.display = 'none';
+    } else {
+      voiceSel.style.display = '';
+      voices.forEach(v => voiceSel.appendChild(new Option(v.name, v.id)));
+    }
+
+    if (restoring) {
+      const sm = localStorage.getItem(`ct_tts_model_${side}`);
+      if (sm && [...modelSel.options].some(o => o.value === sm)) modelSel.value = sm;
+      const sv = localStorage.getItem(`ct_tts_voice_${side}`);
+      if (sv && [...voiceSel.options].some(o => o.value === sv)) voiceSel.value = sv;
+    }
+
+    if (!restoring) saveSettings();
+  }
+
+  // ── TTS text cleanup ──
+  function cleanTextForTTS(text) {
+    return text
+      .replace(/https?:\/\/\S+/g, '')                // URLs
+      .replace(/[a-f0-9]{16,}/gi, '')                 // long hex hashes
+      .replace(/\b[A-Za-z0-9+/]{20,}={0,2}\b/g, '')  // base64 blobs
+      .replace(/^(INFO|DEBUG|WARNING|ERROR|GET|POST|PUT|DELETE|HEAD|OPTIONS|PATCH):?\s.*$/gm, '') // log lines
+      .replace(/\b\d{1,3}(\.\d{1,3}){3}(:\d+)?\b/g, '')  // IP addresses
+      .replace(/\/[\w.\-\/]+\.\w{1,5}\b/g, '')        // file paths
+      .replace(/\b[\w.\-]+@[\w.\-]+\.\w+\b/g, '')     // emails
+      .replace(/\{[^}]{30,}\}/g, '')                   // long JSON-like blobs
+      .replace(/\[[\w\s\/:.+\-]{20,}\]/g, '')          // long bracketed log prefixes
+      .replace(/\n{3,}/g, '\n\n')                      // collapse blank lines
+      .trim();
+  }
+
+  // ── Shared TTS playback with global lock ──
+  let currentAudio = null;
+  let currentTTSStatusId = null;
+  let ttsBusy = false;  // global lock: no simultaneous left+right
+  let ttsResolve = null;  // resolve callback for active TTS promise
+  let ttsIdleTimer = null;  // 5s idle timer: continues chain after pause/stop
+
+  function getTTSConfig(side) {
+    const ctrlSide = side === 'left' ? 'q4' : side;
+    const tgtLang = document.getElementById('tgt-lang').value;
+    const srcLang = document.getElementById('src-lang').value || 'DE';
+    let text, lang;
+    if (side === 'school-sn') {
+      text = Q.schoolNative; lang = srcLang;
+    } else if (side === 'school-sf') {
+      text = Q.schoolForeign; lang = tgtLang;
+    } else if (side === 'school-wn') {
+      text = Q.schoolNativeWord.replace('📖 ', ''); lang = srcLang;
+    } else if (side === 'school-wf') {
+      text = Q.schoolForeignWord.replace('📖 ', ''); lang = tgtLang;
+    } else if (side === 'q1-input') {
+      text = Q.q1.trim();
+      lang = srcLang;
+    } else if (side === 'q1') {
+      text = Q.q4.trim().split('\n').slice(-10).join('\n');
+      lang = srcLang;
+    } else if (side === 'right') {
+      text = lastTranslation || Q.q2;
+      lang = tgtLang;
+    } else {
+      const sel = window.getSelection().toString().trim();
+      text = sel || Q.q3.trim().split('\n').slice(-10).join('\n');
+      lang = tgtLang;
+    }
+    return {
+      text,
+      lang,
+      provider: document.getElementById(`tts-provider-${ctrlSide}`)?.value,
+      voice: document.getElementById(`tts-voice-${ctrlSide}`)?.value || null,
+      model: document.getElementById(`tts-model-${ctrlSide}`)?.value || null,
+      statusId: `tts-status-${ctrlSide}`,
+    };
+  }
+
+  // Returns a promise that resolves when audio finishes + 5s cooldown
+  // Split text into chunks of ~maxLen chars, breaking at sentence/line boundaries
+  function chunkText(text, maxLen = 500) {
+    if (text.length <= maxLen) return [text];
+    const chunks = [];
+    let remaining = text;
+    while (remaining.length > 0) {
+      if (remaining.length <= maxLen) { chunks.push(remaining); break; }
+      let cut = remaining.lastIndexOf('. ', maxLen);
+      if (cut < maxLen * 0.3) cut = remaining.lastIndexOf('\n', maxLen);
+      if (cut < maxLen * 0.3) cut = remaining.lastIndexOf(' ', maxLen);
+      if (cut < maxLen * 0.3) cut = maxLen;
+      chunks.push(remaining.slice(0, cut + 1).trim());
+      remaining = remaining.slice(cut + 1).trim();
+    }
+    return chunks.filter(c => c.length > 0);
+  }
+
+  let _ttsAbort = false;
+
+  async function playTTS(side) {
+    if (ttsBusy) {
+      const sid = (side === 'left' ? 'q4' : side);
+      setStatus(`tts-status-${sid}`, 'err', 'TTS busy');
+      return;
+    }
+    _ttsAbort = false;
+    const cfg = getTTSConfig(side);
+    if (!cfg.provider) { setStatus(cfg.statusId, 'err', 'No provider'); return; }
+    if (!cfg.text) { setStatus(cfg.statusId, 'err', 'No text'); return; }
+    const ctrlSide2 = side === 'left' ? 'q4' : side;
+    const filterEl = document.getElementById(`tts-filter-${ctrlSide2}`);
+    if (filterEl && filterEl.checked) {
+      cfg.text = cleanTextForTTS(cfg.text);
+      if (!cfg.text) { setStatus(cfg.statusId, 'err', 'Filtered empty'); return; }
+    }
+
+    // Kill any leftover audio
+    if (currentAudio) { currentAudio.pause(); currentAudio = null; }
+
+    const chunkEl = document.getElementById(`tts-chunk-${ctrlSide2}`);
+    const chunks = (chunkEl && chunkEl.checked) ? chunkText(cfg.text) : [cfg.text];
+    ttsBusy = true;
+    currentTTSStatusId = cfg.statusId;
+
+    try {
+      for (let i = 0; i < chunks.length; i++) {
+        if (_ttsAbort) break;
+        const label = chunks.length > 1 ? `${i+1}/${chunks.length}...` : '...';
+        setStatus(cfg.statusId, 'loading', label);
+
+        const r = await fetch(`${API}/tts`, {
+          method: 'POST', headers: {'Content-Type': 'application/json'},
+          body: JSON.stringify({ text: chunks[i], lang: cfg.lang, provider: cfg.provider, voice: cfg.voice, model: cfg.model, ctx: side })
+        });
+        if (!r.ok) {
+          const d = await r.json().catch(() => ({}));
+          setStatus(cfg.statusId, 'err', d.detail || 'Error');
+          ttsBusy = false;
+          return;
+        }
+        const blob = await r.blob();
+        const url = URL.createObjectURL(blob);
+        currentAudio = new Audio(url);
+        const chunkLabel = chunks.length > 1 ? `\u25b6 ${i+1}/${chunks.length}` : '\u25b6';
+        setStatus(cfg.statusId, 'ok', chunkLabel);
+
+        // Wait for audio to finish
+        await new Promise(resolve => {
+          let settled = false;
+          const finish = (statusType, statusMsg) => {
+            if (settled) return;
+            settled = true;
+            URL.revokeObjectURL(url);
+            if (statusMsg !== undefined) setStatus(cfg.statusId, statusType, statusMsg);
+            currentAudio = null;
+            ttsResolve = null;
+            resolve();
+          };
+          ttsResolve = finish;
+          currentAudio.onended = () => { finish('', ''); };
+          currentAudio.onerror = () => { finish('err', 'Audio error'); };
+          const playPromise = currentAudio.play();
+          if (playPromise && typeof playPromise.catch === 'function') {
+            playPromise.catch(() => finish('err', 'Playback blocked'));
+          }
+        });
+
+        if (_ttsAbort) break;
+      }
+
+      // 5s cooldown after speaking
+      if (!_ttsAbort) {
+        setStatus(cfg.statusId, '', '5s...');
+        await new Promise(r => setTimeout(r, 5000));
+      }
+      setStatus(cfg.statusId, '', '');
+
+    } catch(e) {
+      setStatus(cfg.statusId, 'err', 'Error');
+    }
+    ttsBusy = false;
+  }
+
+  function pauseTTS() {
+    if (currentAudio && !currentAudio.paused) {
+      currentAudio.pause();
+      if (currentTTSStatusId) setStatus(currentTTSStatusId, '', '\u23f8 5s...');
+      // Start 5s idle timer — if not resumed, skip to next
+      clearTimeout(ttsIdleTimer);
+      if (ttsResolve) {
+        const r = ttsResolve;
+        ttsIdleTimer = setTimeout(() => {
+          if (currentAudio) { currentAudio.pause(); currentAudio = null; }
+          ttsResolve = null;
+          if (currentTTSStatusId) { setStatus(currentTTSStatusId, '', ''); currentTTSStatusId = null; }
+          ttsBusy = false;
+          r();
+        }, 5000);
+      }
+    } else if (currentAudio && currentAudio.paused) {
+      clearTimeout(ttsIdleTimer);
+      currentAudio.play();
+      if (currentTTSStatusId) setStatus(currentTTSStatusId, 'ok', '\u25b6');
+    }
+  }
+
+  function stopTTS() {
+    _ttsAbort = true;
+    clearTimeout(ttsIdleTimer);
+    if (currentAudio) { currentAudio.pause(); currentAudio.currentTime = 0; currentAudio = null; }
+    if (currentTTSStatusId) setStatus(currentTTSStatusId, '', '5s...');
+    // Wait 5s then continue chain
+    if (ttsResolve) {
+      const r = ttsResolve;
+      ttsIdleTimer = setTimeout(() => {
+        ttsResolve = null;
+        if (currentTTSStatusId) { setStatus(currentTTSStatusId, '', ''); currentTTSStatusId = null; }
+        ttsBusy = false;
+        r();
+      }, 5000);
+    } else {
+      if (currentTTSStatusId) { setStatus(currentTTSStatusId, '', ''); currentTTSStatusId = null; }
+      ttsBusy = false;
+    }
+  }
+
+  // ── Button states (neon when active, greyed when not) ──
+  function updateButtonStates() {
+    Q.q1 = document.getElementById('user-input').value.trim();
+    const direct = isDirectMode();
+    const directText = document.getElementById('translated-preview').textContent.trim();
+    const hasInput = direct ? directText.length > 0 : Q.q1.length > 0;
+    const hasPane = !!getSelectedPane();
+    const hasChatProvider = !!getSelectedChatProvider();
+    const hasSession = !!currentSessionId;
+    const hasOutput = Q.q3.trim().length > 0;
+    // STDIN buttons — require backend (session or pane)
+    const canAct = hasSession || hasPane || hasChatProvider;
+    document.querySelectorAll('.btn-accent[onclick*="translateInput"]').forEach(b => b.disabled = !hasInput || !canAct);
+    document.querySelectorAll('.btn-send[onclick*="translateAndSend"]').forEach(b => b.disabled = !hasInput || !canAct || (!hasPane && !hasChatProvider));
+    // Capture: only when pane selected (tmux mode only)
+    const captureBtn = document.getElementById('capture-btn');
+    captureBtn.disabled = !hasPane;
+    // Back-translate: neon when there's output to translate
+    const btBtn = document.getElementById('back-translate-btn');
+    if (hasOutput) {
+      btBtn.classList.remove('btn-ghost');
+      btBtn.classList.add('btn-accent');
+      btBtn.disabled = false;
+    } else {
+      btBtn.classList.remove('btn-accent');
+      btBtn.classList.add('btn-ghost');
+      btBtn.disabled = true;
+    }
+  }
+  document.getElementById('user-input').addEventListener('input', updateButtonStates);
+  document.getElementById('translated-preview').addEventListener('input', updateButtonStates);
+  setTimeout(updateButtonStates, 100);
+
+  // ── Theme toggle ──
+  function toggleTheme() {
+    const isDark = !document.documentElement.hasAttribute('data-theme');
+    if (isDark) {
+      document.documentElement.setAttribute('data-theme', 'light');
+      localStorage.setItem('ct_theme', 'light');
+    } else {
+      document.documentElement.removeAttribute('data-theme');
+      localStorage.setItem('ct_theme', 'dark');
+    }
+    updateThemeButton();
+  }
+
+  function updateThemeButton() {
+    const light = document.documentElement.getAttribute('data-theme') === 'light';
+    document.getElementById('theme-toggle').textContent = light ? '\u263D' : '\u2600';
+  }
+
+  function loadTheme() {
+    if (localStorage.getItem('ct_theme') === 'light') {
+      document.documentElement.setAttribute('data-theme', 'light');
+    }
+    updateThemeButton();
+  }
+
+  // ── Chat providers ──
+  async function loadChatProviders() {
+    try {
+      const r = await fetch(`${API}/chat/providers`);
+      const d = await r.json();
+      chatProviders = d.providers || [];
+    } catch(e) { chatProviders = []; }
+  }
+
+  async function clearChatHistory() {
+    const pid = getSelectedChatProvider();
+    if (!pid) return;
+    await fetch(`${API}/chat/${pid}/clear`, { method: 'POST' });
+    setQ('q3', ''); setQ('q4', '');
+    setStatus('capture-status', 'ok', 'Cleared');
+  }
+
+  async function sendToChat(translatedText) {
+    const pid = getSelectedChatProvider();
+    if (!pid) return null;
+    const model = getSelectedModel() || null;
+    setStatus('capture-status', 'loading', '...');
+    try {
+      const r = await fetch(`${API}/chat`, {
+        method: 'POST', headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({
+          provider: pid,
+          message: translatedText,
+          model,
+          directives: directives.length ? directives.map(d => d.translated) : null,
+          lang: document.getElementById('tgt-lang').selectedOptions[0]?.textContent.trim(),
+          stateless: !document.getElementById('context-toggle').checked,
+          conversation_id: currentSessionId || 'default',
+          ctx: 'Q2→Q3'
+        })
+      });
+      const d = await r.json();
+      if (d.error) {
+        const msg = typeof d.error === 'string' ? d.error.slice(0, 60) : 'Error';
+        setStatus('llm-status', 'err', msg);
+        setStatus('capture-status', 'err', 'LLM Error');
+        return null;
+      }
+      setStatus('llm-status', '', '');
+      setStatus('capture-status', 'ok', d.model || pid);
+      return d.reply;
+    } catch(e) {
+      setStatus('capture-status', 'err', 'Error');
+      return null;
+    }
+  }
+
+  // ── School (Q5) ──
+  let schoolConfig = null;
+  let schoolActive = false;
+  let learnedWords = readJsonSetting('ct_school_learned_words', []);
+  let schoolHistory = readJsonSetting('ct_school_history', []);
+
+  async function playSchoolLine(elementId, ttsSide) {
+    // Delegate to playTTS which handles chunking, status, and error feedback
+    return playTTS(ttsSide);
+  }
+
+  function renderSchoolHistory() {
+    const el = document.getElementById('school-history');
+    if (!el) return;
+    el.replaceChildren();
+    [...schoolHistory].reverse().forEach(h => {
+      const entry = document.createElement('div');
+      entry.className = 'school-history-entry';
+      const addLine = (labelText, text, dim) => {
+        const line = document.createElement('div');
+        line.className = 'school-line';
+        const label = document.createElement('span');
+        label.className = 'school-label';
+        label.textContent = labelText;
+        const value = document.createElement('span');
+        value.className = 'school-text';
+        if (dim) value.style.color = 'var(--text-dim)';
+        value.textContent = text || '';
+        line.append(label, value);
+        entry.appendChild(line);
+      };
+      addLine('Summary', h.sentenceNative, true);
+      addLine('', h.sentence, false);
+      if (h.word) {
+        addLine('Word', h.wordNative || '', true);
+        addLine('', h.word, false);
+      }
+      el.appendChild(entry);
+    });
+  }
+
+  async function loadSchoolConfig() {
+    try {
+      const r = await fetch(`${API}/school/config`);
+      schoolConfig = await r.json();
+      // Populate preset dropdown
+      const presetSel = document.getElementById('school-preset');
+      presetSel.innerHTML = '';
+      const presets = schoolConfig.presets || [];
+      presets.forEach(p => presetSel.appendChild(new Option(p.name, p.id)));
+      const savedPreset = localStorage.getItem('ct_school_preset');
+      if (savedPreset && [...presetSel.options].some(o => o.value === savedPreset)) presetSel.value = savedPreset;
+      // Populate difficulty dropdown
+      const sel = document.getElementById('school-level');
+      sel.innerHTML = '';
+      (schoolConfig.difficulty || []).forEach(d => sel.appendChild(new Option(d, d)));
+      const saved = localStorage.getItem('ct_school_level');
+      if (saved && [...sel.options].some(o => o.value === saved)) sel.value = saved;
+    } catch(e) { schoolConfig = null; }
+  }
+
+  function onSchoolPresetChange() {
+    localStorage.setItem('ct_school_preset', document.getElementById('school-preset').value);
+  }
+
+  function getSchoolPrompt() {
+    if (!schoolConfig) return '';
+    const presets = schoolConfig.presets || [];
+    const selectedId = document.getElementById('school-preset').value;
+    const preset = presets.find(p => p.id === selectedId) || presets[0];
+    return preset ? preset.prompt : '';
+  }
+
+  // ── School users ──
+  let currentSchoolUser = null;
+  const schoolUserPasswords = new Map();
+
+  function promptSchoolPassword(name) {
+    const password = prompt(`Password for ${name}:`);
+    if (password === null) return null;
+    if (!password) { alert('Password required'); return null; }
+    return password;
+  }
+
+  function promptNewSchoolPassword(name) {
+    const password = prompt(`New password for ${name}:`);
+    if (password === null) return null;
+    if (!password) { alert('Password required'); return null; }
+    const confirm = prompt(`Repeat password for ${name}:`);
+    if (confirm === null) return null;
+    if (password !== confirm) { alert('Passwords do not match'); return null; }
+    return password;
+  }
+
+  function clearSchoolUserState() {
+    currentSchoolUser = null;
+    learnedWords = [];
+    schoolHistory = [];
+    localStorage.removeItem('ct_school_user');
+    localStorage.setItem('ct_school_learned_words', JSON.stringify(learnedWords));
+    localStorage.setItem('ct_school_history', JSON.stringify(schoolHistory));
+    renderSchoolHistory();
+  }
+
+  async function loadSchoolUsers() {
+    try {
+      const r = await fetch(`${API}/school/users`);
+      const d = await r.json();
+      const sel = document.getElementById('school-user');
+      sel.innerHTML = '<option value="">— user —</option>';
+      (d.users || []).forEach(u => sel.appendChild(new Option(u, u)));
+      const saved = localStorage.getItem('ct_school_user');
+      if (saved && [...sel.options].some(o => o.value === saved)) {
+        sel.value = saved;
+      }
+    } catch(e) {}
+  }
+
+  async function loadUserData(name, suppliedPassword) {
+    if (!name) { clearSchoolUserState(); return true; }
+    let password = suppliedPassword || schoolUserPasswords.get(name);
+    if (!password) {
+      password = promptSchoolPassword(name);
+      if (!password) return false;
+    }
+    try {
+      const r = await fetch(`${API}/school/users/${name}/load`, {
+        method: 'POST', headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({ password })
+      });
+      const d = await r.json().catch(() => ({}));
+      if (!r.ok) {
+        if (d.detail === 'Password not set') {
+          const newPassword = promptNewSchoolPassword(name);
+          if (!newPassword) return false;
+          const setPw = await fetch(`${API}/school/users/${name}/password`, {
+            method: 'POST', headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({ password: newPassword })
+          });
+          const setData = await setPw.json().catch(() => ({}));
+          if (!setPw.ok) { alert(setData.detail || 'Error setting password'); return false; }
+          return loadUserData(name, newPassword);
+        }
+        schoolUserPasswords.delete(name);
+        alert(d.detail || 'Error loading user');
+        return false;
+      }
+      currentSchoolUser = d;
+      schoolUserPasswords.set(name, password);
+      learnedWords = d.learnedWords || [];
+      schoolHistory = d.history || [];
+      localStorage.setItem('ct_school_learned_words', JSON.stringify(learnedWords));
+      localStorage.setItem('ct_school_history', JSON.stringify(schoolHistory));
+      renderSchoolHistory();
+      return true;
+    } catch(e) {
+      alert('Error loading user');
+      return false;
+    }
+  }
+
+  async function saveUserData() {
+    if (!currentSchoolUser) return;
+    const name = currentSchoolUser.name;
+    const password = schoolUserPasswords.get(name);
+    if (!password) return;
+    const r = await fetch(`${API}/school/users/${name}`, {
+      method: 'PUT', headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({ name, password, learnedWords, history: schoolHistory })
+    });
+    if (!r.ok) {
+      const d = await r.json().catch(() => ({}));
+      schoolUserPasswords.delete(name);
+      alert(d.detail || 'Error saving user');
+    }
+  }
+
+  async function onSchoolUserChange() {
+    const name = document.getElementById('school-user').value;
+    if (!name) { clearSchoolUserState(); return; }
+    const ok = await loadUserData(name);
+    if (ok) localStorage.setItem('ct_school_user', name);
+    else {
+      document.getElementById('school-user').value = '';
+      clearSchoolUserState();
+    }
+  }
+
+  async function addSchoolUser() {
+    const name = prompt('Username (lowercase a-z only):');
+    if (!name) return;
+    const clean = name.trim().toLowerCase();
+    if (!/^[a-z]+$/.test(clean)) { alert('Only lowercase a-z allowed'); return; }
+    const password = promptNewSchoolPassword(clean);
+    if (!password) return;
+    try {
+      const r = await fetch(`${API}/school/users`, {
+        method: 'POST', headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({ name: clean, password })
+      });
+      if (!r.ok) { const d = await r.json(); alert(d.detail || 'Error'); return; }
+      await loadSchoolUsers();
+      document.getElementById('school-user').value = clean;
+      await loadUserData(clean, password);
+      localStorage.setItem('ct_school_user', clean);
+    } catch(e) { alert('Error creating user'); }
+  }
+
+  function initSchoolProviders() {
+    if (chatProviders.length === 0) return;
+    document.getElementById('school-section').style.display = '';
+    const sel = document.getElementById('school-provider');
+    sel.innerHTML = '';
+    chatProviders.forEach(p => sel.appendChild(new Option(p.name, p.id)));
+    const saved = localStorage.getItem('ct_school_provider');
+    if (saved && [...sel.options].some(o => o.value === saved)) sel.value = saved;
+    onSchoolProviderChange(true);
+  }
+
+  function onSchoolProviderChange(restoring) {
+    const pid = document.getElementById('school-provider').value;
+    const msel = document.getElementById('school-model');
+    msel.innerHTML = '';
+    const prov = chatProviders.find(p => p.id === pid);
+    if (prov) {
+      const saved = localStorage.getItem('ct_school_model') || '';
+      prov.models.forEach(m => {
+        const opt = new Option(m, m);
+        if (m === saved) opt.selected = true;
+        msel.appendChild(opt);
+      });
+    }
+    if (!restoring) {
+      localStorage.setItem('ct_school_provider', pid);
+      localStorage.setItem('ct_school_model', msel.value);
+    }
+  }
+
+  async function toggleSchool() {
+    const section = document.getElementById('school-section');
+    const toggle = document.getElementById('school-toggle');
+    schoolActive = toggle.checked;
+    section.className = 'school-section ' + (schoolActive ? 'expanded' : 'collapsed');
+    document.querySelector('.school-body').style.display = schoolActive ? '' : 'none';
+    localStorage.setItem('ct_school_active', schoolActive ? '1' : '');
+    if (schoolActive) {
+      // Load user data if a user is selected but not yet loaded
+      const userName = document.getElementById('school-user').value;
+      if (userName && !schoolUserPasswords.has(userName)) {
+        const ok = await loadUserData(userName);
+        if (!ok) document.getElementById('school-user').value = '';
+      }
+      // Auto-run if Q2+Q3 already have content
+      const q2Text = Q.q2.trim();
+      const q3Text = Q.q3.trim().split('\n').slice(-15).join('\n');
+      if (q2Text && q3Text) runSchool(q2Text, q3Text);
+    }
+  }
+
+  async function runSchool(q2Text, q3Text) {
+    console.log('[runSchool] active=', schoolActive, 'config=', !!schoolConfig);
+    if (!schoolActive || !schoolConfig) return;
+    const pid = document.getElementById('school-provider').value;
+    const model = document.getElementById('school-model').value;
+    const level = document.getElementById('school-level').value;
+    console.log('[runSchool] pid=', pid, 'model=', model, 'level=', level);
+    if (!pid || !level) return;
+
+    localStorage.setItem('ct_school_level', level);
+    localStorage.setItem('ct_school_model', model);
+
+    const foreignLang = document.getElementById('tgt-lang').selectedOptions[0]?.textContent.trim() || '';
+    const prompt = getSchoolPrompt().replace('{level}', level);
+    let message = `${prompt}\nLanguage: ${foreignLang}\n\nQuestion: ${q2Text}\nAnswer: ${q3Text}`;
+    if (learnedWords.length > 0) {
+      message += `\n\nDo NOT use any of these already learned words: ${learnedWords.join(', ')}`;
+    }
+
+    // Call LLM (stateless — does not affect main chat history)
+    try {
+      const r = await fetch(`${API}/chat`, {
+        method: 'POST', headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({ provider: pid, message, model, lang: document.getElementById('tgt-lang').selectedOptions[0]?.textContent.trim(), stateless: true, ctx: 'school' })
+      });
+      const d = await r.json();
+      if (d.error || !d.reply) {
+        setStatus('llm-status', 'err', 'School: ' + (typeof d.error === 'string' ? d.error.slice(0, 50) : d.detail?.slice(0, 50) || 'Error'));
+        return;
+      }
+
+      // Parse SENTENCE: and WORD: from reply
+      const lines = d.reply.trim().split('\n');
+      let sentence = '', word = '';
+      for (const line of lines) {
+        if (line.startsWith('SENTENCE:')) sentence = line.replace('SENTENCE:', '').trim();
+        if (line.startsWith('WORD:')) word = line.replace('WORD:', '').trim();
+      }
+      if (!sentence) sentence = d.reply.trim();
+
+      // Track learned word
+      if (word && !learnedWords.includes(word.toLowerCase())) {
+        learnedWords.push(word.toLowerCase());
+        localStorage.setItem('ct_school_learned_words', JSON.stringify(learnedWords));
+      }
+
+      // Show foreign
+      setQ('schoolForeign', sentence);
+      setQ('schoolForeignWord', word ? `📖 ${word}` : '');
+
+      // Translate to mother tongue
+      const srcLang = document.getElementById('src-lang').value || 'DE';
+      const tgtCode = document.getElementById('tgt-lang').value;
+
+      const tds = await translateText(
+        sentence,
+        tgtCode.replace('-US','').replace('-BR',''),
+        srcLang || 'DE',
+        'school-sn'
+      );
+      setQ('schoolNative', tds.translation || '');
+
+      if (word) {
+        const tdw = await translateText(
+          word,
+          tgtCode.replace('-US','').replace('-BR',''),
+          srcLang || 'DE',
+          'school-wn'
+        );
+        setQ('schoolNativeWord', tdw.translation ? `📖 ${tdw.translation}` : '');
+      }
+
+      updateQuota();
+
+      // Add to school history
+      schoolHistory.push({
+        sentence, word: word || '',
+        sentenceNative: tds.translation || '', wordNative: Q.schoolNativeWord.replace('📖 ', '')
+      });
+      localStorage.setItem('ct_school_history', JSON.stringify(schoolHistory));
+      renderSchoolHistory();
+      saveUserData();
+
+      // TTS: 4 lines with individual auto toggles and provider/voice
+      if (ttsProviderIds.length > 0) {
+        if (document.getElementById('auto-tts-school-sn')?.checked && document.getElementById('tts-provider-school-sn')?.value) await playSchoolLine('school-sentence-native', 'school-sn');
+        if (document.getElementById('auto-tts-school-sf')?.checked && document.getElementById('tts-provider-school-sf')?.value) await playSchoolLine('school-sentence-foreign', 'school-sf');
+        if (document.getElementById('auto-tts-school-wn')?.checked && document.getElementById('tts-provider-school-wn')?.value) await playSchoolLine('school-word-native', 'school-wn');
+        if (document.getElementById('auto-tts-school-wf')?.checked && document.getElementById('tts-provider-school-wf')?.value) await playSchoolLine('school-word-foreign', 'school-wf');
+      }
+    } catch(e) {
+      console.error('School error:', e);
+    }
+  }
+
+  // ── Load languages ──
+  // Convert 2-letter country code to flag emoji
+  function codeToFlag(code) {
+    // Map language codes to country codes where they differ
+    const langToCountry = {
+      EN: 'GB', JA: 'JP', KO: 'KR', ZH: 'CN', AR: 'SA', HI: 'IN',
+      BN: 'BD', UR: 'PK', FA: 'IR', HE: 'IL', VI: 'VN', EL: 'GR',
+      DA: 'DK', SV: 'SE', NB: 'NO', CS: 'CZ', UK: 'UA', SL: 'SI',
+      ET: 'EE', GA: 'IE', EU: 'ES', GL: 'ES', CA: 'ES', BS: 'BA',
+      SQ: 'AL', HY: 'AM', KA: 'GE', MS: 'MY', TL: 'PH', SW: 'KE',
+      TA: 'LK', TE: 'IN', ML: 'IN', GU: 'IN', MR: 'IN', PA: 'IN',
+      AS: 'IN', NE: 'NP', MY: 'MM', KM: 'KH', LO: 'LA', SI: 'LK',
+    };
+    const c = code.split('-')[0].toUpperCase();
+    const cc = langToCountry[c] || c;
+    if (cc.length !== 2) return '';
+    return String.fromCodePoint(...[...cc].map(c => 0x1F1E6 + c.charCodeAt(0) - 65));
+  }
+
+  async function updateQuota() {
+    const quota = document.getElementById('deepl-quota');
+    const cfg = getTranslatorConfig();
+    if (!cfg.provider || cfg.kind !== 'deepl') {
+      quota.style.display = 'none';
+      return;
+    }
+    quota.style.display = '';
+    try {
+      const r = await fetch(`${API}/usage`);
+      const d = await r.json();
+      if (!r.ok || d.error || d.detail) return;
+      const used = d.character_count;
+      const limit = d.character_limit;
+      const remaining = limit - used;
+      const pct = Math.round((used / limit) * 100);
+      const fill = document.getElementById('quota-fill');
+      const text = document.getElementById('quota-text');
+      fill.style.width = pct + '%';
+      fill.style.background = pct > 90 ? 'var(--warn)' : 'var(--accent)';
+      const fmt = n => n >= 1000 ? Math.round(n/1000) + 'k' : n;
+      text.textContent = `${fmt(remaining)} left (${pct}%)`;
+    } catch(e) {}
+  }
+
+  async function loadLanguages() {
+    try {
+      const r = await fetch(`${API}/languages`);
+      const d = await r.json();
+      const srcSel = document.getElementById('src-lang');
+      const tgtSel = document.getElementById('tgt-lang');
+      const savedSrc = localStorage.getItem('ct_src') || 'DE';
+      const savedTgt = localStorage.getItem('ct_tgt') || 'EN-US';
+      // Source: keep Auto option, add all source languages
+      (d.source || []).forEach(l => {
+        const flag = codeToFlag(l.code);
+        const opt = new Option(`${flag} ${l.name}`, l.code);
+        if (l.code === savedSrc) opt.selected = true;
+        srcSel.appendChild(opt);
+      });
+      // Target: all target languages
+      (d.target || []).forEach(l => {
+        const flag = codeToFlag(l.code);
+        const opt = new Option(`${flag} ${l.name}`, l.code);
+        if (l.code === savedTgt) opt.selected = true;
+        tgtSel.appendChild(opt);
+      });
+      updateQuadrantTitles();
+    } catch(e) {
+      console.error('Failed to load languages', e);
+    }
+  }
+
+  // ── Console / OpLog ──
+  let _consoleSince = 0;
+  let _consoleTimer = null;
+  let _consoleOpen = false;
+
+  function toggleConsolePanel() {
+    const panel = document.getElementById('console-panel');
+    const btn = document.getElementById('console-toggle-btn');
+    _consoleOpen = !_consoleOpen;
+    panel.classList.toggle('open', _consoleOpen);
+    btn.classList.toggle('open', _consoleOpen);
+    if (_consoleOpen && !_consoleTimer) {
+      pollConsole();
+      _consoleTimer = setInterval(pollConsole, 2000);
+    }
+    if (!_consoleOpen && _consoleTimer) {
+      clearInterval(_consoleTimer);
+      _consoleTimer = null;
+    }
+  }
+
+  async function pollConsole() {
+    try {
+      const r = await fetch(`${API}/console?since=${_consoleSince}`);
+      const d = await r.json();
+      if (!d.entries || d.entries.length === 0) return;
+      const log = document.getElementById('console-log');
+      for (const e of d.entries) {
+        const line = document.createElement('div');
+        const ts = new Date(e.ts * 1000);
+        const timeStr = ts.toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+        const phase = e.phase || '';
+        line.className = phase === 'error' ? 'c-error' : phase === 'init' ? 'c-init' : 'c-result';
+        let html = `<span class="c-ts">${timeStr}</span>`;
+        if (e.op) html += `<span class="c-op">[${e.op}]</span>`;
+        if (e.q) html += `<span class="c-q">${e.q}</span>`;
+        html += e.detail || '';
+        if (e.error) html += ` <span style="color:#ff4444">${e.error}</span>`;
+        line.innerHTML = html;
+        log.appendChild(line);
+        if (e.id > _consoleSince) _consoleSince = e.id;
+      }
+      log.scrollTop = log.scrollHeight;
+    } catch(err) {}
+  }
+
+  // ── Init ──
+  loadTheme();
+  renderDirectives();
+  (async () => {
+    // Inject config panel first — elements must exist before loadLanguages etc.
+    await ConfigPanel.init();
+    await loadLanguages();
+    loadSettings();
+    loadTTSProviders();
+    await loadTranslatorProviders();
+    updateQuota();
+    setInterval(updateQuota, 60000);
+    await loadBackends();
+    await loadSchoolConfig();
+    initSchoolProviders();
+    await loadSchoolUsers();
+    renderSchoolHistory();
+    // School always starts inactive — user enables manually
+    // Restore direct mode
+    const dt = document.getElementById('direct-toggle');
+    if (dt && localStorage.getItem('ct_direct')) {
+      dt.checked = true;
+      applyDirectMode();
+    }
+    updateDirectToggleVisibility();
+    // Auto-create session if backend is set but no session
+    if (currentBackend && !currentSessionId) {
+      await newSession();
+    }
+    // Re-trigger auto-refresh now that backend is ready
+    const ar = document.getElementById('auto-refresh');
+    if (ar && ar.checked) {
+      setAutoRefresh(true);
+    }
+    // Initial backTranslate if Q3 has content and auto-translate is on
+    setTimeout(() => {
+      if (document.getElementById('auto-translate-back')?.checked && Q.q3.trim() && !Q.q4.trim()) {
+        backTranslate();
+      }
+    }, 3000);
+  })();
+</script>
+
+</body>
+</html>
