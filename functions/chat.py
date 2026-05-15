@@ -20,14 +20,14 @@ PROVIDERS = {
     },
     "google": {
         "name": "Google",
-        "env_key": "GEMINI_KEY",
+        "env_key": "GEMINI_API_KEY",
         "base_url": "https://generativelanguage.googleapis.com/v1beta/openai/chat/completions",
         "default_model": "gemini-3.1-flash-lite",
         "models": ["gemini-3.1-flash-lite", "gemini-2.5-flash", "gemini-2.5-pro"],
     },
     "openai": {
         "name": "OpenAI",
-        "env_key": "OPENAI_KEY",
+        "env_key": "OPENAI_API_KEY",
         "base_url": "https://api.openai.com/v1/chat/completions",
         "default_model": "gpt-4.1-mini",
         "models": ["gpt-4.1-mini", "gpt-4.1", "o4-mini"],
@@ -56,13 +56,13 @@ _litellm_url = os.environ.get("LITELLM_URL", "").rstrip("/")
 _litellm_port = os.environ.get("LITELLM_PORT", "")
 if _litellm_url and _litellm_port:
     _litellm_url = f"{_litellm_url}:{_litellm_port}"
-_litellm_key = os.environ.get("LITELLM_KEY", "")
+_litellm_key = os.environ.get("LITELLM_API_KEY", "")
 
 
 def discover_litellm() -> dict:
     """(Re-)discover LiteLLM models. Returns status dict."""
     if not _litellm_url or not _litellm_key:
-        return {"error": "LITELLM_URL or LITELLM_KEY not set"}
+        return {"error": "LITELLM_URL or LITELLM_API_KEY not set"}
     try:
         import httpx
         r = httpx.get(f"{_litellm_url}/v1/models",
@@ -72,7 +72,7 @@ def discover_litellm() -> dict:
             if models:
                 PROVIDERS["litellm"] = {
                     "name": "LiteLLM",
-                    "env_key": "LITELLM_KEY",
+                    "env_key": "LITELLM_API_KEY",
                     "base_url": f"{_litellm_url}/v1/chat/completions",
                     "default_model": models[0],
                     "models": models,

@@ -185,12 +185,12 @@ def send_special_key(pane_target: str, key: str) -> dict:
 
 def _load_deepl_keys():
     keys = []
-    val = os.environ.get("DEEPL_KEY", "")
+    val = os.environ.get("DEEPL_API_KEY", "")
     if val.strip():
         keys.append(val.strip())
     i = 2
     while True:
-        val = os.environ.get(f"DEEPL_KEY_{i}", "")
+        val = os.environ.get(f"DEEPL_API_KEY_{i}", "")
         if not val.strip():
             break
         keys.append(val.strip())
@@ -256,7 +256,7 @@ def fallback_languages() -> dict:
 async def get_usage() -> dict:
     import httpx
     if not _deepl_keys:
-        return {"error": "No DEEPL_KEY set"}
+        return {"error": "No DEEPL_API_KEY set"}
     total_count, total_limit = 0, 0
     async with httpx.AsyncClient() as client:
         for key in _deepl_keys:
@@ -275,7 +275,7 @@ async def translate_text(text, target_lang, source_lang=None, api_key=None,
     if not text.strip():
         return {"translation": ""}
     if not api_key and not _deepl_keys:
-        return {"error": "No DEEPL_KEY set"}
+        return {"error": "No DEEPL_API_KEY set"}
 
     payload = {"text": [text], "target_lang": target_lang}
     if source_lang:
@@ -306,7 +306,7 @@ async def get_languages() -> dict:
     """Fetch supported languages from DeepL API."""
     import httpx
 
-    key = os.environ.get("DEEPL_KEY", "")
+    key = os.environ.get("DEEPL_API_KEY", "")
     if not key:
         return fallback_languages()
 
