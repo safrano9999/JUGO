@@ -9,6 +9,7 @@ import hmac
 import json
 import os
 import re
+import time
 from pathlib import Path
 
 
@@ -36,13 +37,13 @@ class SchoolUserStore:
             try:
                 data = json.loads(path.read_text())
                 name = data.get("name", path.stem)
-                existing = db.query_one("SELECT name FROM users WHERE name = %s", (name,))
+                existing = db.query_one("SELECT name FROM users WHERE name = :name", {"name": name})
                 if not existing:
                     db.execute(
-                        "INSERT INTO users (name, password_hash, learned_words, history) VALUES (%s, %s, %s, %s)",
-                        (name, json.dumps(data.get("passwordHash", {})),
-                         json.dumps(data.get("learnedWords", [])),
-                         json.dumps(data.get("history", []))),
+                        "INSERT INTO users (name, password_hash, learned_words, history) VALUES (:name, :pw, :lw, :hist)",
+                        {"name": name, "pw": json.dumps(data.get("passwordHash", {})),
+                         "lw": json.dumps(data.get("learnedWords", [])),
+                         "hist": json.dumps(data.get("history", []))},
                     )
             except Exception:
                 pass
@@ -56,7 +57,7 @@ class SchoolUserStore:
     def list_names(self) -> list[str]:
         if self._use_db:
             import db
-            rows = db.query("SELECT name FROM users ORDER BY name")
+            rows = db.query("SELECT name FROM users ORDER BY name", {})
             return [r["name"] for r in rows]
         return sorted(p.stem for p in self.users_dir.glob("*.json"))
 
@@ -67,12 +68,12 @@ class SchoolUserStore:
         pw_hash = self.hash_password(password)
         if self._use_db:
             import db
-            existing = db.query_one("SELECT name FROM users WHERE name = %s", (clean,))
+            existing = db.query_one("SELECT name FROM users WHERE name = :name", {"name": clean})
             if existing:
                 raise FileExistsError(clean)
             db.execute(
-                "INSERT INTO users (name, password_hash, learned_words, history) VALUES (%s, %s, %s, %s)",
-                (clean, json.dumps(pw_hash), '[]', '[]'),
+                "INSERT INTO users (name, password_hash, learned_words, history) VALUES (:name, :pw, '[]', '[]')",
+                {"name": clean, "pw": json.dumps(pw_hash)},
             )
         else:
             path = self._path(clean)
@@ -97,8 +98,8 @@ class SchoolUserStore:
         if self._use_db:
             import db
             db.execute(
-                "UPDATE users SET password_hash = %s, updated_at = now() WHERE name = %s",
-                (json.dumps(pw_hash), clean),
+                "UPDATE users SET password_hash = :pw, updated_at = :ts WHERE name = :name",
+                {"pw": json.dumps(pw_hash), "ts": time.time(), "name": clean},
             )
         else:
             path = self._path(clean)
@@ -118,8 +119,8 @@ class SchoolUserStore:
         if self._use_db:
             import db
             db.execute(
-                "UPDATE users SET learned_words = %s, history = %s, updated_at = now() WHERE name = %s",
-                (json.dumps(learned), json.dumps(history), clean),
+                "UPDATE users SET learned_words = :lw, history = :hist, updated_at = :ts WHERE name = :name",
+                {"lw": json.dumps(learned), "hist": json.dumps(history), "ts": time.time(), "name": clean},
             )
         else:
             data = {
@@ -135,7 +136,7 @@ class SchoolUserStore:
         clean = self.normalize_name(name)
         if self._use_db:
             import db
-            row = db.query_one("SELECT * FROM users WHERE name = %s", (clean,))
+            row = db.query_one("SELECT * FROM users WHERE name = :name", {"name": clean})
             if not row:
                 raise FileNotFoundError(clean)
             return {

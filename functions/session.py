@@ -69,30 +69,34 @@ def _save_to_db(session: dict) -> None:
         return
     db.execute(
         """INSERT INTO sessions (id, pane, lines, last_hash, tts_position, created_at)
-           VALUES (%s, %s, %s, %s, %s, to_timestamp(%s))
+           VALUES (:id, :pane, :lines, :last_hash, :tts_position, :created_at)
            ON CONFLICT (id) DO UPDATE SET
              lines = EXCLUDED.lines,
              last_hash = EXCLUDED.last_hash,
              tts_position = EXCLUDED.tts_position""",
-        (session["id"], session["pane"], json.dumps(session["lines"]),
-         session["last_hash"], session["tts_position"], session["created"]),
+        {"id": session["id"], "pane": session["pane"], "lines": json.dumps(session["lines"]),
+         "last_hash": session["last_hash"], "tts_position": session["tts_position"],
+         "created_at": session["created"]},
     )
 
 
 def _load_from_db(sid: str) -> dict | None:
     if not _use_db:
         return None
-    row = db.query_one("SELECT * FROM sessions WHERE id = %s", (sid,))
+    row = db.query_one("SELECT * FROM sessions WHERE id = :id", {"id": sid})
     if not row:
         return None
     lines = row["lines"] if isinstance(row["lines"], list) else json.loads(row["lines"]) if row["lines"] else []
+    created = row["created_at"]
+    if hasattr(created, "timestamp"):
+        created = created.timestamp()
     return {
         "id": row["id"],
         "pane": row["pane"],
         "lines": lines,
         "last_hash": row["last_hash"],
         "tts_position": row["tts_position"],
-        "created": row["created_at"].timestamp() if row["created_at"] else time.time(),
+        "created": created or time.time(),
     }
 
 
@@ -127,9 +131,12 @@ def list_all() -> list[dict]:
         result = []
         for r in rows:
             lines = r["lines"] if isinstance(r["lines"], list) else json.loads(r["lines"]) if r["lines"] else []
+            created = r["created_at"]
+            if hasattr(created, "timestamp"):
+                created = created.timestamp()
             result.append({
                 "id": r["id"], "pane": r["pane"], "lines_count": len(lines),
-                "created": r["created_at"].timestamp() if r["created_at"] else 0,
+                "created": created or 0,
             })
         return result
     return [{"id": s["id"], "pane": s["pane"], "lines_count": len(s["lines"]),
@@ -139,7 +146,7 @@ def list_all() -> list[dict]:
 def delete(sid: str) -> bool:
     removed = _sessions.pop(sid, None) is not None
     if _use_db:
-        db.execute("DELETE FROM sessions WHERE id = %s", (sid,))
+        db.execute("DELETE FROM sessions WHERE id = :id", {"id": sid})
         return True
     return removed
 
