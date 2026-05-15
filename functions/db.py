@@ -11,7 +11,8 @@ _engine = None
 def _make_engine():
     db_type = os.environ.get("DB_TYPE", "sqlite").lower()
     if db_type == "sqlite":
-        path = os.environ.get("DB_PATH", "jugo.db")
+        path = os.environ.get("DB_PATH", "/opt/JUGO/sqlite.db")
+        os.makedirs(os.path.dirname(path), exist_ok=True)
         return create_engine(
             f"sqlite:///{path}",
             connect_args={"check_same_thread": False},
