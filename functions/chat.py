@@ -6,6 +6,7 @@ Returns plain dicts, no HTTP dependencies.
 import os
 import asyncio
 import httpx
+from console import current_session
 
 
 # Provider configs: endpoint, env key, default model
@@ -33,22 +34,15 @@ PROVIDERS = {
     },
 }
 
-# In-memory conversation history per provider (+ DB persistence)
+# In-memory conversation history per provider (ephemeral, session-scoped)
 _histories: dict[str, list[dict]] = {}
 _history_locks: dict[str, asyncio.Lock] = {}
-_use_db = False
-
-try:
-    import db
-    if db.is_configured():
-        _use_db = True
-except Exception:
-    pass
 
 
 def _history_key(provider: str, conversation_id: str | None = None) -> str:
+    sid = current_session.get()
     suffix = conversation_id or "default"
-    return f"{provider}:{suffix}"
+    return f"{sid}:{provider}:{suffix}"
 
 
 def _history_lock(key: str) -> asyncio.Lock:
@@ -56,28 +50,6 @@ def _history_lock(key: str) -> asyncio.Lock:
         _history_locks[key] = asyncio.Lock()
     return _history_locks[key]
 
-
-def _db_append(hkey: str, role: str, content: str) -> None:
-    if _use_db:
-        db.execute(
-            "INSERT INTO chat_history (history_key, role, content) VALUES (%s, %s, %s)",
-            (hkey, role, content),
-        )
-
-
-def _db_load(hkey: str) -> list[dict]:
-    if not _use_db:
-        return []
-    rows = db.query(
-        "SELECT role, content FROM chat_history WHERE history_key = %s ORDER BY id",
-        (hkey,),
-    )
-    return [{"role": r["role"], "content": r["content"]} for r in rows]
-
-
-def _db_clear(hkey: str) -> None:
-    if _use_db:
-        db.execute("DELETE FROM chat_history WHERE history_key = %s", (hkey,))
 
 # LiteLLM discovery
 _litellm_url = os.environ.get("LITELLM_URL", "").rstrip("/")
@@ -137,21 +109,19 @@ def available_providers() -> list[dict]:
 
 def get_history(provider: str, conversation_id: str | None = None) -> list[dict]:
     hkey = _history_key(provider, conversation_id)
-    if hkey not in _histories and _use_db:
-        _histories[hkey] = _db_load(hkey)
     return _histories.get(hkey, [])
 
 
 def clear_history(provider: str, conversation_id: str | None = None) -> None:
+    sid = current_session.get()
     if conversation_id:
         hkey = _history_key(provider, conversation_id)
         _histories[hkey] = []
-        _db_clear(hkey)
         return
+    prefix = f"{sid}:{provider}"
     for key in list(_histories):
-        if key == provider or key.startswith(f"{provider}:"):
+        if key == prefix or key.startswith(f"{prefix}:"):
             _histories[key] = []
-            _db_clear(key)
 
 
 async def chat(
@@ -213,8 +183,6 @@ async def chat(
 
         hkey = _history_key(provider, conversation_id)
         async with _history_lock(hkey):
-            if hkey not in _histories and _use_db:
-                _histories[hkey] = _db_load(hkey)
             history = _histories.setdefault(hkey, [])
             user_entry = {"role": "user", "content": message}
             history.append(user_entry)
@@ -239,8 +207,6 @@ async def chat(
             data = resp.json()
             reply = data["choices"][0]["message"]["content"]
             history.append({"role": "assistant", "content": reply})
-            _db_append(hkey, "user", message)
-            _db_append(hkey, "assistant", reply)
 
             return {"reply": reply, "model": use_model, "provider": provider}
 

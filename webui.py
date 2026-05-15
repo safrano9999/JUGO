@@ -17,10 +17,11 @@ load_dotenv(_project_dir / ".env", override=True)
 from python_header import get  # noqa: F401
 
 import uvicorn
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, Request
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse, Response
 from fastapi.middleware.cors import CORSMiddleware
+from starlette.middleware.base import BaseHTTPMiddleware
 from pydantic import BaseModel
 
 import core
@@ -28,6 +29,7 @@ import tts
 import session
 import chat
 import console
+from console import current_session
 from school_users import SchoolUserStore
 import re
 import time
@@ -103,6 +105,19 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+
+class SessionMiddleware(BaseHTTPMiddleware):
+    async def dispatch(self, request: Request, call_next):
+        sid = request.headers.get("x-session-id", "_global")
+        token = current_session.set(sid)
+        try:
+            return await call_next(request)
+        finally:
+            current_session.reset(token)
+
+
+app.add_middleware(SessionMiddleware)
 
 
 # ── Models ────────────────────────────────────────────────────────────────────

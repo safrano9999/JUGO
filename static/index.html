@@ -566,6 +566,17 @@
 <script src="/static/config.js"></script>
 <script>
   const API = window.location.origin;
+  const SESSION_ID = crypto.randomUUID();
+  const _origFetch = window.fetch;
+  window.fetch = function(url, opts = {}) {
+    opts.headers = opts.headers || {};
+    if (opts.headers instanceof Headers) {
+      opts.headers.set('X-Session-ID', SESSION_ID);
+    } else {
+      opts.headers['X-Session-ID'] = SESSION_ID;
+    }
+    return _origFetch.call(this, url, opts);
+  };
   function readJsonSetting(key, fallback) {
     try {
       return JSON.parse(localStorage.getItem(key) || JSON.stringify(fallback));
