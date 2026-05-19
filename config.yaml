@@ -1,0 +1,8 @@
+services:
+  jugo:
+    title: JUGO web UI
+    webui:
+      host: 0.0.0.0
+      port: 11001
+      publish_port: 11001
+      env_port: JUGO_PORT
