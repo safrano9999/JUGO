@@ -8,11 +8,9 @@ import os
 import sys
 import json
 from pathlib import Path
-from dotenv import load_dotenv
 
 _project_dir = Path(__file__).resolve().parent
 sys.path.insert(0, str(_project_dir / "functions"))
-load_dotenv(_project_dir / ".env", override=True)
 
 from python_header import get  # noqa: F401
 
