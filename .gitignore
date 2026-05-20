@@ -1,4 +1,5 @@
 .env
+config.conf
 venv/
 __pycache__/
 users/
