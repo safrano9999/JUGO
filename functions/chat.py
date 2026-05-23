@@ -1,11 +1,10 @@
 """
-chat.py — LLM chat completion for multiple providers (OpenAI, Gemini, Grok/xAI).
+chat.py — LLM chat completion for OpenAI-compatible providers.
 Returns plain dicts, no HTTP dependencies.
 """
 
 import os
 import asyncio
-import httpx
 from console import current_session
 
 
@@ -14,21 +13,21 @@ PROVIDERS = {
     "xai": {
         "name": "xAI",
         "env_key": "XAI_API_KEY",
-        "base_url": "https://api.x.ai/v1/chat/completions",
+        "base_url": "https://api.x.ai/v1",
         "default_model": "grok-4.3",
         "models": ["grok-4-fast-non-reasoning", "grok-4.3", "grok-3-mini", "grok-3"],
     },
     "google": {
         "name": "Google",
         "env_key": "GEMINI_API_KEY",
-        "base_url": "https://generativelanguage.googleapis.com/v1beta/openai/chat/completions",
+        "base_url": "https://generativelanguage.googleapis.com/v1beta/openai",
         "default_model": "gemini-3.1-flash-lite",
         "models": ["gemini-3.1-flash-lite", "gemini-2.5-flash", "gemini-2.5-pro"],
     },
     "openai": {
         "name": "OpenAI",
         "env_key": "OPENAI_API_KEY",
-        "base_url": "https://api.openai.com/v1/chat/completions",
+        "base_url": "https://api.openai.com/v1",
         "default_model": "gpt-4.1-mini",
         "models": ["gpt-4.1-mini", "gpt-4.1", "o4-mini"],
     },
@@ -52,41 +51,63 @@ def _history_lock(key: str) -> asyncio.Lock:
 
 
 # LiteLLM discovery
-_litellm_url = os.environ.get("LITELLM_URL", "").rstrip("/")
-_litellm_port = os.environ.get("LITELLM_PORT", "")
-if _litellm_url and _litellm_port:
-    _litellm_url = f"{_litellm_url}:{_litellm_port}"
 _litellm_key = os.environ.get("LITELLM_API_KEY", "")
+
+
+def _litellm_base_url() -> str:
+    raw_url = os.environ.get("LITELLM_URL", "").strip().strip('"').strip("'").rstrip("/")
+    raw_port = os.environ.get("LITELLM_PORT", "").strip().strip('"').strip("'")
+    if not raw_url:
+        return ""
+    if raw_url.endswith("/v1"):
+        raw_url = raw_url[:-3].rstrip("/")
+    if raw_port:
+        raw_url = f"{raw_url}:{raw_port}"
+    return f"{raw_url}/v1"
+
+
+def _openai_client(base_url: str, api_key: str, timeout: float = 60.0):
+    try:
+        from openai import AsyncOpenAI
+    except ImportError as exc:
+        raise RuntimeError("Python package 'openai' is required for LLM calls.") from exc
+    return AsyncOpenAI(api_key=api_key or "not-needed", base_url=base_url, timeout=timeout)
+
+
+def _sync_openai_client(base_url: str, api_key: str, timeout: float = 10.0):
+    try:
+        from openai import OpenAI
+    except ImportError as exc:
+        raise RuntimeError("Python package 'openai' is required for model discovery.") from exc
+    return OpenAI(api_key=api_key or "not-needed", base_url=base_url, timeout=timeout)
 
 
 def discover_litellm() -> dict:
     """(Re-)discover LiteLLM models. Returns status dict."""
-    if not _litellm_url or not _litellm_key:
+    litellm_base = _litellm_base_url()
+    if not litellm_base or not _litellm_key:
         return {"error": "LITELLM_URL or LITELLM_API_KEY not set"}
     try:
-        import httpx
-        r = httpx.get(f"{_litellm_url}/v1/models",
-                      headers={"Authorization": f"Bearer {_litellm_key}"}, timeout=10, verify=False)
-        if r.status_code == 200:
-            models = [m["id"] for m in r.json().get("data", [])]
-            if models:
-                PROVIDERS["litellm"] = {
-                    "name": "LiteLLM",
-                    "env_key": "LITELLM_API_KEY",
-                    "base_url": f"{_litellm_url}/v1/chat/completions",
-                    "default_model": models[0],
-                    "models": models,
-                }
-                print(f"[LiteLLM] discovered {len(models)} models: {', '.join(models[:5])}")
-                return {"ok": True, "models": models}
-            return {"error": "No models found"}
-        return {"error": f"HTTP {r.status_code}"}
+        client = _sync_openai_client(litellm_base, _litellm_key, timeout=10.0)
+        response = client.models.list()
+        models = sorted({m.id for m in response.data if getattr(m, "id", "")})
+        if models:
+            PROVIDERS["litellm"] = {
+                "name": "LiteLLM",
+                "env_key": "LITELLM_API_KEY",
+                "base_url": litellm_base,
+                "default_model": models[0],
+                "models": models,
+            }
+            print(f"[LiteLLM] discovered {len(models)} models: {', '.join(models[:5])}")
+            return {"ok": True, "models": models}
+        return {"error": "No models found"}
     except Exception as e:
         return {"error": str(e)}
 
 
 # Auto-discover at import time
-if _litellm_url and _litellm_key:
+if _litellm_base_url() and _litellm_key:
     _result = discover_litellm()
     if "error" in _result:
         print(f"[LiteLLM] discovery error: {_result['error']}")
@@ -154,31 +175,22 @@ async def chat(
     if system_parts:
         system_messages.append({"role": "system", "content": "\n".join(system_parts)})
 
-    headers = {
-        "Authorization": f"Bearer {key}",
-        "Content-Type": "application/json",
-    }
-
-    async def send_payload(messages: list[dict]) -> tuple[httpx.Response | None, str | None]:
-        skip_ssl = cfg["base_url"].startswith(_litellm_url) if _litellm_url else False
-        async with httpx.AsyncClient(timeout=60.0, verify=not skip_ssl) as client:
-            resp = await client.post(
-                cfg["base_url"], headers=headers,
-                json={"model": use_model, "messages": messages},
-            )
-        return resp, None
+    async def send_payload(messages: list[dict]) -> str:
+        client = _openai_client(cfg["base_url"], key, timeout=60.0)
+        response = await client.chat.completions.create(
+            model=use_model,
+            messages=messages,
+        )
+        content = response.choices[0].message.content
+        if isinstance(content, list):
+            content = "".join(part.get("text", "") if isinstance(part, dict) else str(part) for part in content)
+        return (content or "").strip()
 
     try:
         if stateless:
             messages = system_messages + [{"role": "user", "content": message}]
             print(f"[CHAT] {provider}/{use_model} stateless=True hist=0")
-            resp, _ = await send_payload(messages)
-            if resp is None:
-                return {"error": "No response"}
-            if resp.status_code != 200:
-                return {"error": resp.text, "status": resp.status_code}
-            data = resp.json()
-            reply = data["choices"][0]["message"]["content"]
+            reply = await send_payload(messages)
             return {"reply": reply, "model": use_model, "provider": provider}
 
         hkey = _history_key(provider, conversation_id)
@@ -189,23 +201,12 @@ async def chat(
             messages = system_messages + history
             print(f"[CHAT] {provider}/{use_model} stateless=False hist={len(history)}")
             try:
-                resp, _ = await send_payload(messages)
+                reply = await send_payload(messages)
             except Exception:
                 if history and history[-1] is user_entry:
                     history.pop()
                 raise
 
-            if resp is None:
-                if history and history[-1] is user_entry:
-                    history.pop()
-                return {"error": "No response"}
-            if resp.status_code != 200:
-                if history and history[-1] is user_entry:
-                    history.pop()
-                return {"error": resp.text, "status": resp.status_code}
-
-            data = resp.json()
-            reply = data["choices"][0]["message"]["content"]
             history.append({"role": "assistant", "content": reply})
 
             return {"reply": reply, "model": use_model, "provider": provider}
