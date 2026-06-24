@@ -59,7 +59,7 @@ def _require_bool_env(key: str) -> bool:
     raise RuntimeError(f"Invalid boolean for environment variable {key}: {value}")
 
 
-SERVER_HOST = _require_env("HOST")
+SERVER_HOST = _require_env("FASTAPI_HOST")
 SERVER_PORT = _require_port_env("JUGO_PORT")
 USE_TMUX = _require_bool_env("USE_TMUX")
 SCHOOL_CONFIG_PATH = _project_dir / "school.json"
