@@ -627,7 +627,7 @@
   let tmuxPanes = [];
   let paneProfiles = [];
   let useTmux = false;
-  let currentBackend = '';  // 'tmux' or provider id like 'xai','google','openai','litellm'
+  let currentBackend = '';  // 'tmux' or 'litellm'
   let _deeplFallbackDone = false;  // auto-switch away from DeepL only once per session
   // directives: [{src: "Antworte kurz", translated: "Odgovorite kratko"}]
   let directives = readJsonSetting('ct_directives', []);

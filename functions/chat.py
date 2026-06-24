@@ -1,37 +1,16 @@
 """
-chat.py — LLM chat completion for OpenAI-compatible providers.
+chat.py — LLM chat completion through LiteLLM's OpenAI-compatible endpoint.
 Returns plain dicts, no HTTP dependencies.
 """
 
 import os
 import asyncio
+from urllib.parse import urlsplit, urlunsplit
 from console import current_session
 
 
-# Provider configs: endpoint, env key, default model
-PROVIDERS = {
-    "xai": {
-        "name": "xAI",
-        "env_key": "XAI_API_KEY",
-        "base_url": "https://api.x.ai/v1",
-        "default_model": "grok-4.3",
-        "models": ["grok-4-fast-non-reasoning", "grok-4.3", "grok-3-mini", "grok-3"],
-    },
-    "google": {
-        "name": "Google",
-        "env_key": "GEMINI_API_KEY",
-        "base_url": "https://generativelanguage.googleapis.com/v1beta/openai",
-        "default_model": "gemini-3.1-flash-lite",
-        "models": ["gemini-3.1-flash-lite", "gemini-2.5-flash", "gemini-2.5-pro"],
-    },
-    "openai": {
-        "name": "OpenAI",
-        "env_key": "OPENAI_API_KEY",
-        "base_url": "https://api.openai.com/v1",
-        "default_model": "gpt-4.1-mini",
-        "models": ["gpt-4.1-mini", "gpt-4.1", "o4-mini"],
-    },
-}
+# Provider configs. Chat and LLM translation intentionally go through LiteLLM only.
+PROVIDERS: dict[str, dict] = {}
 
 # In-memory conversation history per provider (ephemeral, session-scoped)
 _histories: dict[str, list[dict]] = {}
@@ -50,20 +29,30 @@ def _history_lock(key: str) -> asyncio.Lock:
     return _history_locks[key]
 
 
-# LiteLLM discovery
-_litellm_key = os.environ.get("LITELLM_API_KEY", "")
-
-
 def _litellm_base_url() -> str:
     raw_url = os.environ.get("LITELLM_URL", "").strip().strip('"').strip("'").rstrip("/")
     raw_port = os.environ.get("LITELLM_PORT", "").strip().strip('"').strip("'")
     if not raw_url:
         return ""
+    if "://" not in raw_url:
+        raw_url = f"http://{raw_url}"
     if raw_url.endswith("/v1"):
         raw_url = raw_url[:-3].rstrip("/")
-    if raw_port:
-        raw_url = f"{raw_url}:{raw_port}"
-    return f"{raw_url}/v1"
+    parsed = urlsplit(raw_url)
+    has_port = False
+    try:
+        has_port = parsed.port is not None
+    except ValueError:
+        has_port = False
+    netloc = parsed.netloc
+    if raw_port and not has_port:
+        netloc = f"{netloc}:{raw_port}"
+    base_url = urlunsplit((parsed.scheme, netloc, parsed.path.rstrip("/"), "", "")).rstrip("/")
+    return f"{base_url}/v1"
+
+
+def _litellm_api_key() -> str:
+    return os.environ.get("LITELLM_API_KEY", "")
 
 
 def _openai_client(base_url: str, api_key: str, timeout: float = 60.0):
@@ -85,10 +74,12 @@ def _sync_openai_client(base_url: str, api_key: str, timeout: float = 10.0):
 def discover_litellm() -> dict:
     """(Re-)discover LiteLLM models. Returns status dict."""
     litellm_base = _litellm_base_url()
-    if not litellm_base or not _litellm_key:
+    litellm_key = _litellm_api_key()
+    if not litellm_base or not litellm_key:
+        PROVIDERS.pop("litellm", None)
         return {"error": "LITELLM_URL or LITELLM_API_KEY not set"}
     try:
-        client = _sync_openai_client(litellm_base, _litellm_key, timeout=10.0)
+        client = _sync_openai_client(litellm_base, litellm_key, timeout=10.0)
         response = client.models.list()
         models = sorted({m.id for m in response.data if getattr(m, "id", "")})
         if models:
@@ -101,31 +92,33 @@ def discover_litellm() -> dict:
             }
             print(f"[LiteLLM] discovered {len(models)} models: {', '.join(models[:5])}")
             return {"ok": True, "models": models}
+        PROVIDERS.pop("litellm", None)
         return {"error": "No models found"}
     except Exception as e:
+        PROVIDERS.pop("litellm", None)
         return {"error": str(e)}
 
 
 # Auto-discover at import time
-if _litellm_base_url() and _litellm_key:
+if _litellm_base_url() and _litellm_api_key():
     _result = discover_litellm()
     if "error" in _result:
         print(f"[LiteLLM] discovery error: {_result['error']}")
 
 
 def available_providers() -> list[dict]:
-    """Return providers that have an API key configured."""
-    result = []
-    for pid, cfg in PROVIDERS.items():
-        key = os.environ.get(cfg["env_key"], "")
-        if key:
-            result.append({
-                "id": pid,
-                "name": cfg["name"],
-                "models": cfg["models"],
-                "default_model": cfg["default_model"],
-            })
-    return result
+    """Return the LiteLLM provider if it is configured and models were discovered."""
+    if "litellm" not in PROVIDERS and _litellm_base_url() and _litellm_api_key():
+        discover_litellm()
+    cfg = PROVIDERS.get("litellm")
+    if not cfg:
+        return []
+    return [{
+        "id": "litellm",
+        "name": cfg["name"],
+        "models": cfg["models"],
+        "default_model": cfg["default_model"],
+    }]
 
 
 def get_history(provider: str, conversation_id: str | None = None) -> list[dict]:
@@ -159,9 +152,9 @@ async def chat(
     if not cfg:
         return {"error": f"Unknown provider: {provider}"}
 
-    key = os.environ.get(cfg["env_key"], "")
+    key = _litellm_api_key()
     if not key:
-        return {"error": f"No API key for {cfg['name']} — set {cfg['env_key']} in .env"}
+        return {"error": "No LiteLLM API key — set LITELLM_API_KEY in .env"}
 
     use_model = model or cfg["default_model"]
 

@@ -1,6 +1,6 @@
 # JUGO
 
-Language learning platform — immersive, multi-provider, multi-quadrant UI for real-time translation, TTS, and LLM-assisted language practice.
+Language learning platform — immersive, multi-quadrant UI for real-time translation, TTS, and LiteLLM-assisted language practice.
 
 ![JUGO Screenshot](docs/jugo_screenshot.png)
 
