@@ -4,9 +4,6 @@ FASTAPI_HOST=127.0.0.1
 # JUGO web UI internal port
 JUGO_PORT=11001
 
-# JUGO web UI host port
-JUGO_PUBLISH_PORT=11001
-
 # JUGO tmux integration
 USE_TMUX=false
 
