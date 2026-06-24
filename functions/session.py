@@ -67,17 +67,27 @@ def is_readable(line: str) -> bool:
 def _save_to_db(session: dict) -> None:
     if not _use_db:
         return
-    db.execute(
-        """INSERT INTO sessions (id, pane, lines, last_hash, tts_position, created_at)
-           VALUES (:id, :pane, :lines, :last_hash, :tts_position, :created_at)
-           ON CONFLICT (id) DO UPDATE SET
-             lines = EXCLUDED.lines,
-             last_hash = EXCLUDED.last_hash,
-             tts_position = EXCLUDED.tts_position""",
-        {"id": session["id"], "pane": session["pane"], "lines": json.dumps(session["lines"]),
-         "last_hash": session["last_hash"], "tts_position": session["tts_position"],
-         "created_at": session["created"]},
-    )
+    params = {
+        "id": session["id"],
+        "pane": session["pane"],
+        "lines": json.dumps(session["lines"]),
+        "last_hash": session["last_hash"],
+        "tts_position": session["tts_position"],
+        "created_at": session["created"],
+    }
+    if db.query_one("SELECT id FROM sessions WHERE id = :id", {"id": session["id"]}):
+        db.execute(
+            """UPDATE sessions
+               SET pane = :pane, lines = :lines, last_hash = :last_hash, tts_position = :tts_position
+               WHERE id = :id""",
+            params,
+        )
+    else:
+        db.execute(
+            """INSERT INTO sessions (id, pane, lines, last_hash, tts_position, created_at)
+               VALUES (:id, :pane, :lines, :last_hash, :tts_position, :created_at)""",
+            params,
+        )
 
 
 def _load_from_db(sid: str) -> dict | None:

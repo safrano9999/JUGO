@@ -1,6 +1,6 @@
 """
 school_users.py — User store with password hashes.
-Uses PostgreSQL when configured (DB_PW_JUGO set), falls back to JSON files.
+Uses PostgreSQL when configured (JUGO_DB_PW set), falls back to JSON files.
 """
 
 import base64

@@ -12,21 +12,3 @@ TMUX_SHELL=false
 
 # JUGO tmux session prefix
 JUGO_TMUX_SESSION_PREFIX=jugo
-
-# JUGO database backend
-DB_TYPE=sqlite
-
-# JUGO sqlite database path
-DB_PATH=/opt/JUGO/sqlite.db
-
-# JUGO postgres host
-DB_URL=127.0.0.1
-
-# JUGO postgres port
-DB_PORT=5432
-
-# JUGO postgres database name
-DB_NAME_JUGO=jugo
-
-# JUGO postgres database user
-DB_USER_JUGO=jugo
