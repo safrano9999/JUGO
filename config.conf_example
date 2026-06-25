@@ -7,10 +7,14 @@ FASTAPI_HOST=127.0.0.1
 JUGO_PORT=11001
 
 # JUGO tmux integration
+#blank-if: USE_TMUX=false JUGO_TMUX_SESSION_PREFIX
+#required: JUGO tmux integration switch
 USE_TMUX=false
 
 # JUGO shell tmux mode
+#required: JUGO shell tmux mode
 TMUX_SHELL=false
 
 # JUGO tmux session prefix
+#required: JUGO tmux session prefix
 JUGO_TMUX_SESSION_PREFIX=jugo
