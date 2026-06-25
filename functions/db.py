@@ -3,12 +3,14 @@
 import os
 import re
 import time
+from pathlib import Path
 from sqlalchemy import create_engine, text
 from sqlalchemy.pool import StaticPool
 
 _engine = None
 _VALID_IDENTIFIER = re.compile(r"^[A-Za-z_][A-Za-z0-9_]*$")
 _APP_TABLES = ("sessions", "users")
+_PROJECT_ROOT = Path(__file__).resolve().parents[1]
 
 
 def _clean_identifier(value: str, *, field: str) -> str:
@@ -19,7 +21,7 @@ def _clean_identifier(value: str, *, field: str) -> str:
 
 
 def _prefixed_table(base: str) -> str:
-    prefix = _clean_identifier(os.environ.get("JUGO_DB_TABLE_PREFIX", "jugo"), field="JUGO_DB_TABLE_PREFIX")
+    prefix = _clean_identifier(os.environ.get("JUGO_DB_PREFIX", "jugo"), field="JUGO_DB_PREFIX")
     if not prefix:
         return base
     if base == prefix or base.startswith(f"{prefix}_"):
@@ -43,8 +45,7 @@ def _rewrite_sql(sql: str) -> str:
 def _make_engine():
     db_type = os.environ.get("JUGO_DB_BACKEND", "sqlite").lower()
     if db_type == "sqlite":
-        path = os.environ.get("JUGO_DB_SQLITE_PATH", "/opt/JUGO/sqlite.db")
-        os.makedirs(os.path.dirname(path), exist_ok=True)
+        path = _PROJECT_ROOT / "sqlite.db"
         return create_engine(
             f"sqlite:///{path}",
             connect_args={"check_same_thread": False},
