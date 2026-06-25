@@ -498,14 +498,15 @@ def chat_providers():
 
 @app.post("/chat/rediscover")
 def chat_rediscover():
-    cid = console.init("rediscover", "config", "LiteLLM model discovery")
-    result = chat.discover_litellm()
+    cid = console.init("rediscover", "config", "OpenAI v1 model discovery")
+    result = chat.discover_openai_v1()
     if "error" in result:
         console.result(cid, "", error=result["error"])
         return {"ok": False, "error": result["error"]}
-    models = result.get("models", [])
+    providers = result.get("providers", {})
+    models = sorted({model for values in providers.values() for model in values})
     console.result(cid, f"{len(models)} models: {', '.join(models[:5])}")
-    return {"ok": True, "models": models}
+    return {"ok": True, "providers": providers, "models": models}
 
 
 @app.post("/chat")

@@ -1,7 +1,9 @@
 # FastAPI bind address for direct run and published ports
+#required: FastAPI bind host
 FASTAPI_HOST=127.0.0.1
 
 # JUGO web UI internal port
+#required: JUGO internal web UI port
 JUGO_PORT=11001
 
 # JUGO tmux integration

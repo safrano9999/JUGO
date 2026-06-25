@@ -627,7 +627,7 @@
   let tmuxPanes = [];
   let paneProfiles = [];
   let useTmux = false;
-  let currentBackend = '';  // 'tmux' or 'litellm'
+  let currentBackend = '';  // 'tmux' or 'openai_v1'
   let _deeplFallbackDone = false;  // auto-switch away from DeepL only once per session
   // directives: [{src: "Antworte kurz", translated: "Odgovorite kratko"}]
   let directives = readJsonSetting('ct_directives', []);
@@ -1100,7 +1100,7 @@
   }
 
   async function refreshBackend() {
-    // Re-discover LiteLLM models in backend, then reload frontend lists
+    // Re-discover OpenAI v1 models in backend, then reload frontend lists
     try {
       await fetch(`${API}/chat/rediscover`, { method: 'POST' });
     } catch(e) {}
