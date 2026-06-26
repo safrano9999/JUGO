@@ -1,3 +1,2 @@
-# JUGO web UI host port
 #required: JUGO published host port
 JUGO_PUBLISH_PORT=11001

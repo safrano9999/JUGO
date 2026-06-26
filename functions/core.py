@@ -183,18 +183,26 @@ def send_special_key(pane_target: str, key: str) -> dict:
 
 # ── DeepL Key Rotation ───────────────────────────────────────────────────────
 
+
+_DEEPL_KEY_PATTERN = re.compile(r"^DEEPL_API_KEY(?:_(\d+))?$")
+
+
 def _load_deepl_keys():
+    discovered = []
+    for name, raw_value in os.environ.items():
+        match = _DEEPL_KEY_PATTERN.fullmatch(name)
+        value = raw_value.strip()
+        if not match or not value:
+            continue
+        suffix = match.group(1)
+        discovered.append((suffix is not None, int(suffix or 0), suffix or "", name, value))
+
     keys = []
-    val = os.environ.get("DEEPL_API_KEY", "")
-    if val.strip():
-        keys.append(val.strip())
-    i = 2
-    while True:
-        val = os.environ.get(f"DEEPL_API_KEY_{i}", "")
-        if not val.strip():
-            break
-        keys.append(val.strip())
-        i += 1
+    seen = set()
+    for *_order, value in sorted(discovered):
+        if value not in seen:
+            seen.add(value)
+            keys.append(value)
     return keys
 
 _deepl_keys = _load_deepl_keys()
@@ -306,7 +314,7 @@ async def get_languages() -> dict:
     """Fetch supported languages from DeepL API."""
     import httpx
 
-    key = os.environ.get("DEEPL_API_KEY", "")
+    key = _next_key()
     if not key:
         return fallback_languages()
 
