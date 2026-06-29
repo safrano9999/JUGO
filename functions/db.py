@@ -45,7 +45,8 @@ def _rewrite_sql(sql: str) -> str:
 def _make_engine():
     db_type = os.environ.get("JUGO_DB_BACKEND", "sqlite").lower()
     if db_type == "sqlite":
-        path = _PROJECT_ROOT / "sqlite.db"
+        path = _PROJECT_ROOT / "sqlite" / "jugo.sqlite3"
+        path.parent.mkdir(parents=True, exist_ok=True)
         return create_engine(
             f"sqlite:///{path}",
             connect_args={"check_same_thread": False},
