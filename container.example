@@ -1,2 +1,2 @@
 #required: JUGO published host port
-JUGO_PUBLISH_PORT=11001
+JUGO_PUBLISH_PORT=11020

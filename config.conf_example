@@ -3,7 +3,7 @@
 FASTAPI_HOST=127.0.0.1
 
 #required: JUGO internal web UI port
-JUGO_PORT=11001
+JUGO_PORT=11020
 
 #blank-if: USE_TMUX=false JUGO_TMUX_SESSION_PREFIX
 #required: JUGO tmux integration switch
