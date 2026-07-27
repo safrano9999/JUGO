@@ -5,6 +5,7 @@ Returns plain dicts, no HTTP dependencies.
 
 import asyncio
 from console import current_session
+from openai_v1_stream import consume_openai_v1_stream_async
 from python_header import openai_v1_async_client, openai_v1_client, openai_v1_providers
 
 
@@ -132,11 +133,15 @@ async def chat(
         system_messages.append({"role": "system", "content": "\n".join(system_parts)})
 
     async def send_payload(messages: list[dict]) -> str:
-        client = openai_v1_async_client(cfg["provider"], timeout=60.0)
+        provider_config = cfg["provider"]
+        client = openai_v1_async_client(provider_config, timeout=60.0)
         response = await client.chat.completions.create(
             model=use_model,
             messages=messages,
+            stream=provider_config.stream,
         )
+        if provider_config.stream:
+            return await consume_openai_v1_stream_async(response)
         content = response.choices[0].message.content
         if isinstance(content, list):
             content = "".join(part.get("text", "") if isinstance(part, dict) else str(part) for part in content)
