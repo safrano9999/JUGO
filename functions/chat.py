@@ -5,8 +5,12 @@ Returns plain dicts, no HTTP dependencies.
 
 import asyncio
 from console import current_session
-from openai_v1_stream import consume_openai_v1_stream_async
-from python_header import openai_v1_async_client, openai_v1_client, openai_v1_providers
+from openai_v1 import (
+    consume_openai_v1_stream_async,
+    openai_v1_async_client,
+    openai_v1_client,
+    openai_v1_providers,
+)
 
 
 # Provider configs. Chat and LLM translation intentionally go through OpenAI v1 only.
