@@ -39,6 +39,15 @@ jobs:
           set -euo pipefail
           repository="${GITHUB_REPOSITORY#*/}"
           asset="${repository}-examplefiles.zip"
+          if [[ ! -f "$asset" ]]; then
+            if gh release view latest >/dev/null 2>&1 &&
+              gh release view latest --json assets --jq '.assets[].name' |
+                grep -Fxq "$asset"; then
+              gh release delete-asset latest "$asset" --yes
+            fi
+            echo "No configuration example files; skipping release asset."
+            exit 0
+          fi
           if gh release view latest >/dev/null 2>&1; then
             gh release upload latest "$asset" --clobber
           else

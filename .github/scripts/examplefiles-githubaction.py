@@ -3,12 +3,21 @@
 
 from __future__ import annotations
 
+import fnmatch
 import os
 import stat
 import subprocess
 import sys
 import zipfile
 from pathlib import Path
+
+
+EXAMPLE_PATTERNS = (
+    "env*example",
+    "config*example",
+    "container*example",
+    "config*.container",
+)
 
 
 def main() -> None:
@@ -34,11 +43,20 @@ def main() -> None:
             continue
         relative = encoded.decode("utf-8", errors="strict")
         path = repository / relative
-        if "example" not in path.name or not path.exists() or path.is_symlink():
+        if (
+            not any(fnmatch.fnmatchcase(path.name, pattern) for pattern in EXAMPLE_PATTERNS)
+            or not path.exists()
+            or path.is_symlink()
+        ):
             continue
         if not stat.S_ISREG(path.stat().st_mode):
             continue
         files.append((relative, path))
+
+    if not files:
+        output.unlink(missing_ok=True)
+        print("No tracked configuration example files; skipping archive.")
+        return
 
     with zipfile.ZipFile(
         output,
