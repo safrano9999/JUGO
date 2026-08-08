@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+# Source of truth: SCRIPTS/githubactions. Generated copies are overwritten.
 """Build the repository's deterministic example-files release archive."""
 
 from __future__ import annotations
