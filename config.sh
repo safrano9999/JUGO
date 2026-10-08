@@ -1051,6 +1051,15 @@ add_readonly_shared_bind_mount() {
     case "${configured,,}" in
         ""|blank|null) return 0 ;;
     esac
+    if [[ "$configured" == %config-conf/* ]]; then
+        source="$(realpath -m -- "$DIR/${configured#%config-conf/}")"
+        [[ "$source" == "$(realpath -e -- "$DIR")/"* ]] || {
+            echo "Shared bind source escapes the configuration directory" >&2
+            return 1
+        }
+        mkdir -p -m 0700 -- "$source"
+        configured="$source"
+    fi
     [[ "$configured" == /* && "$configured" != *:* \
         && "$configured" != *[[:space:]]* \
         && "$configured" != *$'\n'* && "$configured" != *$'\r'* ]] || {
@@ -1137,10 +1146,19 @@ add_sqlite_volume_mounts() {
 }
 
 add_optional_persistence_mounts() {
-    local item source key path
+    local item source key path destination existing mounted explicit
     [ -x "$OPTIONAL_PERSISTENCE" ] || return 0
     while IFS= read -r item || [ -n "$item" ]; do
         [ -n "$item" ] || continue
+        # An explicit mount selects an existing state volume; do not shadow it
+        # with the automatically named default at the same destination.
+        destination="${item#*:}"; destination="${destination%%:*}"
+        explicit=false
+        for existing in "${volumes[@]}"; do
+            mounted="${existing#*:}"; mounted="${mounted%%:*}"
+            if [[ "$mounted" == "$destination" ]]; then explicit=true; break; fi
+        done
+        $explicit && continue
         source="${item%%:*}"
         add_unique "$item" volumes
         add_unique "$source" named_volumes
@@ -1377,7 +1395,7 @@ configure_from_example() {
         local group="$1"
         local style="${repeat_group_styles[$group]}"
         local fields="${repeat_group_fields[$group]}"
-        local index field mapped value all complete=false slot_found=false next_index=1
+        local index field mapped value all complete=false has_value=false slot_found=false next_index=1
         local mode default_mode
 
         [ -z "${REPEAT_GROUP_MODES[$group]+x}" ] || return 0
@@ -1388,13 +1406,19 @@ configure_from_example() {
                 mapped="$(repeat_group_key "$group" "$style" "$field" "$index")"
                 value="$(read_kv_file "$target" "$mapped" || true)"
                 case "${value,,}" in ""|blank|null) value="" ;; esac
-                if [ -z "$value" ] && [[ -z "${repeat_optional_complete[$field]+x}" ]]; then
-                    all=false
+                if [ -z "$value" ]; then
+                    [[ -n "${repeat_optional_complete[$field]+x}" ]] || all=false
+                else
+                    has_value=true
                 fi
             done
             if [ "$all" = "true" ]; then
-                complete=true
-                continue
+                if [ "$has_value" = "true" ]; then
+                    complete=true
+                    continue
+                fi
+                slot_found=true
+                break
             fi
             next_index="$index"
             slot_found=true
@@ -2516,6 +2540,11 @@ volume_rule_matches() {
     return 1
 }
 
+# Commas inside mount options (ro,z) are not separators between volumes.
+split_volume_items() {
+    mapfile -t items < <(printf '%s\n' "$1" | sed -E 's/,([^,:]+:)/\n\1/g')
+}
+
 generate_container_files() {
     local source_file host image compose_file quadlet_file line stripped entry key value
     local prefix internal_key internal_port publish_port publish_host map enabled_key enabled_value
@@ -2535,6 +2564,7 @@ generate_container_files() {
     local -a additional_lines=()
     local item source container_nr_value command_mode compose_volume rules active
     local tunnel_only=false
+    local registry_autoupdate=true
     local publish_port_declared=false
 
     container_nr_value="$(config_value CONTAINER_NR || true)"
@@ -2680,7 +2710,7 @@ generate_container_files() {
             if [[ "$key" == *_VOLUMES ]]; then
                 [[ -z "${volume_rules[$key]+x}" ]] || continue
                 value="$(expand_volume_value "$key" "$value")" || return 1
-                IFS=',' read -ra items <<< "$value"
+                split_volume_items "$value"
                 for item in "${items[@]}"; do
                     item="$(trim "$item")"
                     source="${item%%:*}"
@@ -2713,7 +2743,7 @@ generate_container_files() {
             return 1 ;;
         esac
         value="$(expand_volume_value "$key" "$value")" || return 1
-        IFS=',' read -ra items <<< "$value"
+        split_volume_items "$value"
         for item in "${items[@]}"; do
             item="$(trim "$item")"
             [ -n "$item" ] || continue
@@ -2733,6 +2763,10 @@ generate_container_files() {
     add_repo_sot_file_mounts
     add_sqlite_volume_mounts
     add_optional_persistence_mounts
+
+    for item in "${additional_lines[@]}"; do
+        [[ "$item" != Pull=never ]] || registry_autoupdate=false
+    done
 
     if [ "$tunnel_only" != "true" ] && [ "$publish_port_declared" != "true" ] \
         && [ "${#ports[@]}" -eq 0 ] && [ -n "$first_port" ]; then
@@ -2762,8 +2796,12 @@ generate_container_files() {
         fi
         printf '    # Container image from config or existing generated file\n'
         printf '    image: %s\n' "$image"
-        printf '    labels:\n'
-        printf '      - "io.containers.autoupdate=registry"\n'
+        if $registry_autoupdate; then
+            printf '    labels:\n'
+            printf '      - "io.containers.autoupdate=registry"\n'
+        else
+            printf '    pull_policy: never\n'
+        fi
         printf '    container_name: %s\n' "$CONTAINER_NAME"
         printf '    hostname: %s\n' "$CONTAINER_NAME"
         if [ "${#ports[@]}" -gt 0 ]; then
@@ -2845,7 +2883,8 @@ generate_container_files() {
         [ "${#devices[@]}" -gt 0 ] && printf '# Device mappings from *_DEVICES in config.conf\n'
         for item in "${devices[@]}"; do printf 'AddDevice=%s\n' "$item"; done
         for item in "${additional_lines[@]}"; do printf '%s\n' "$item"; done
-        printf 'AutoUpdate=registry\n\n'
+        if $registry_autoupdate; then printf 'AutoUpdate=registry\n'; fi
+        printf '\n'
         printf '[Service]\n'
         printf 'Restart=always\n'
         printf 'TimeoutStartSec=30\n\n'
