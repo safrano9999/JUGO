@@ -5,6 +5,7 @@ from __future__ import annotations
 import inspect
 import os
 import re
+import ssl
 from collections.abc import AsyncIterable, Iterable
 from contextlib import contextmanager
 from dataclasses import dataclass
@@ -140,6 +141,19 @@ def openai_v1_first_provider(values: dict[str, str] | None = None) -> OpenAIV1Pr
     return providers[0] if providers else None
 
 
+def _openai_v1_tls_client_kwargs(*, asynchronous: bool = False) -> dict[str, Any]:
+    """Use the configured CA bundle/directory without disabling TLS verification."""
+    cafile = _clean_openai_v1(os.environ.get("SSL_CERT_FILE"))
+    capath = _clean_openai_v1(os.environ.get("SSL_CERT_DIR"))
+    if not cafile and not capath:
+        return {}
+    from openai import DefaultAsyncHttpxClient, DefaultHttpxClient
+
+    context = ssl.create_default_context(cafile=cafile or None, capath=capath or None)
+    client_type = DefaultAsyncHttpxClient if asynchronous else DefaultHttpxClient
+    return {"http_client": client_type(verify=context)}
+
+
 def openai_v1_client(provider: OpenAIV1Provider | None = None, *, timeout: float = 60.0):
     provider = provider or openai_v1_first_provider()
     if provider is None:
@@ -148,7 +162,10 @@ def openai_v1_client(provider: OpenAIV1Provider | None = None, *, timeout: float
         from openai import OpenAI
     except ImportError as exc:
         raise RuntimeError("Python package 'openai' is required for OpenAI v1 calls.") from exc
-    return OpenAI(api_key=provider.api_key or "not-needed", base_url=provider.base_url, timeout=timeout)
+    return OpenAI(
+        api_key=provider.api_key or "not-needed", base_url=provider.base_url,
+        timeout=timeout, **_openai_v1_tls_client_kwargs(),
+    )
 
 
 def openai_v1_async_client(provider: OpenAIV1Provider | None = None, *, timeout: float = 60.0):
@@ -159,7 +176,10 @@ def openai_v1_async_client(provider: OpenAIV1Provider | None = None, *, timeout:
         from openai import AsyncOpenAI
     except ImportError as exc:
         raise RuntimeError("Python package 'openai' is required for OpenAI v1 calls.") from exc
-    return AsyncOpenAI(api_key=provider.api_key or "not-needed", base_url=provider.base_url, timeout=timeout)
+    return AsyncOpenAI(
+        api_key=provider.api_key or "not-needed", base_url=provider.base_url,
+        timeout=timeout, **_openai_v1_tls_client_kwargs(asynchronous=True),
+    )
 
 
 def openai_v1_models(provider: OpenAIV1Provider | None = None, *, timeout: float = 10.0) -> list[str]:
