@@ -32,6 +32,8 @@ quadlet = [
     'NoNewPrivileges=true', 'DropCapability=all',
     'EnvironmentFile='+str(root/'config.conf'), 'EnvironmentFile='+str(root/'.env'),
 ]
+for key, value in spec.get('quadlet_env', {}).items():
+    quadlet.append('Environment='+key+'='+value)
 for directory in spec['dirs']: quadlet.append('Volume='+str(root/directory)+':'+target+'/'+directory+':rw')
 quadlet += ['', '[Service]', 'Restart=on-failure', 'RestartSec=10', 'TimeoutStartSec=300', '', '[Install]', 'WantedBy=default.target', '']
 path = root / (name+'.container')
