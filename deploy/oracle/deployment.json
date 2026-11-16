@@ -1,0 +1,23 @@
+{
+  "name": "jugo",
+  "port": 6009,
+  "image": "jugo",
+  "dirs": [
+    "sqlite",
+    "users"
+  ],
+  "config": {
+    "FASTAPI_HOST": "0.0.0.0",
+    "JUGO_PORT": "8080",
+    "USE_TMUX": "false",
+    "TMUX_SHELL": "false",
+    "JUGO_TMUX_SESSION_PREFIX": "jugo"
+  },
+  "env": {
+    "JUGO_DB_BACKEND": "sqlite",
+    "OPENAI_V1_PROVIDER": "",
+    "OPENAI_V1_URL": "",
+    "OPENAI_V1_PORT": "4000",
+    "OPENAI_V1_KEY": ""
+  }
+}

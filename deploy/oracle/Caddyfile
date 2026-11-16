@@ -1,0 +1,6 @@
+# Included in the existing Oracle Caddy configuration.
+https://:6009 {
+  tls /etc/caddy-certs/internal.crt /etc/caddy-certs/internal.key
+  header X-Robots-Tag "noindex, nofollow"
+  reverse_proxy jugo:8080
+}
