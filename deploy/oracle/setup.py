@@ -33,7 +33,7 @@ quadlet = [
     'EnvironmentFile='+str(root/'config.conf'), 'EnvironmentFile='+str(root/'.env'),
 ]
 for directory in spec['dirs']: quadlet.append('Volume='+str(root/directory)+':'+target+'/'+directory+':rw')
-quadlet += ['', '[Service]', 'Restart=on-failure', 'RestartSec=10', 'TimeoutStartSec=90', '', '[Install]', 'WantedBy=default.target', '']
+quadlet += ['', '[Service]', 'Restart=on-failure', 'RestartSec=10', 'TimeoutStartSec=300', '', '[Install]', 'WantedBy=default.target', '']
 path = root / (name+'.container')
 path.write_text('\n'.join(quadlet))
 links = Path.home()/'.config/containers/systemd'
