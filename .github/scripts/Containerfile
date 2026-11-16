@@ -1,0 +1,14 @@
+# Source of truth: SCRIPTS/githubactions/JUGO/scripts/Containerfile
+FROM docker.io/library/python:3.13-slim
+ENV PYTHONUNBUFFERED=1 PYTHONDONTWRITEBYTECODE=1 PIP_NO_CACHE_DIR=1
+RUN apt-get update && apt-get install -y --no-install-recommends ca-certificates tmux && rm -rf /var/lib/apt/lists/*
+RUN useradd --uid 1000 --create-home app
+WORKDIR /opt/safrano9999/JUGO
+COPY requirements.txt /tmp/requirements.txt
+RUN pip install -r /tmp/requirements.txt
+COPY --chown=1000:1000 . .
+RUN mkdir -p sqlite STATE users VIDEOS staticfiles && chown -R 1000:1000 .
+ENV FASTAPI_HOST=0.0.0.0 JUGO_PORT=8080 USE_TMUX=false TMUX_SHELL=false JUGO_TMUX_SESSION_PREFIX=jugo NAPOLEON_PORT=8080 NATURALGROUNDING_PORT=8080
+USER 1000:1000
+EXPOSE 8080
+CMD ["python3", "-m", "uvicorn", "webui:app", "--host", "0.0.0.0", "--port", "8080", "--proxy-headers", "--forwarded-allow-ips", "10.89.0.0/24"]

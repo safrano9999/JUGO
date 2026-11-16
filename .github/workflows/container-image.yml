@@ -1,0 +1,90 @@
+# Source of truth: SCRIPTS/githubactions. Generated copies are overwritten.
+name: Standalone application images
+on:
+  workflow_dispatch:
+    inputs:
+      image_tag:
+        description: Version tag (empty uses date and run number)
+        required: false
+        default: ''
+      push_latest:
+        description: Publish tested images as latest
+        type: boolean
+        default: true
+permissions:
+  contents: read
+  packages: write
+concurrency:
+  group: standalone-image-${{ github.repository }}
+  cancel-in-progress: false
+jobs:
+  version:
+    runs-on: ubuntu-latest
+    outputs:
+      tag: ${{ steps.version.outputs.tag }}
+    steps:
+      - id: version
+        env:
+          REQUESTED_TAG: ${{ inputs.image_tag }}
+        run: |
+          tag="${REQUESTED_TAG:-$(date -u +%Y.%m.%d).${GITHUB_RUN_NUMBER}}"
+          [[ "$tag" =~ ^[0-9][A-Za-z0-9._-]*$ ]]
+          echo "tag=$tag" >> "$GITHUB_OUTPUT"
+  build:
+    needs: version
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - runner: ubuntu-24.04
+            arch: amd64
+          - runner: ubuntu-24.04-arm
+            arch: arm64
+    runs-on: ${{ matrix.runner }}
+    env:
+      IMAGE: ghcr.io/safrano9999/jugo
+      VERSION: ${{ needs.version.outputs.tag }}
+      ARCH: ${{ matrix.arch }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: docker/setup-buildx-action@v3
+      - uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - name: Build native image on GitHub runner
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: .github/scripts/Containerfile
+          platforms: linux/${{ matrix.arch }}
+          load: true
+          tags: ${{ env.IMAGE }}:${{ env.VERSION }}-${{ matrix.arch }}
+          labels: |
+            org.opencontainers.image.source=https://github.com/${{ github.repository }}
+            org.opencontainers.image.revision=${{ github.sha }}
+      - name: Verify startup, application routes and restart with persistent data
+        run: python3 .github/scripts/smoke-test.py "$IMAGE:$VERSION-$ARCH" jugo
+      - name: Publish verified architecture
+        run: docker push "$IMAGE:$VERSION-$ARCH"
+  publish:
+    needs: [version, build]
+    runs-on: ubuntu-latest
+    env:
+      IMAGE: ghcr.io/safrano9999/jugo
+      VERSION: ${{ needs.version.outputs.tag }}
+      PUSH_LATEST: ${{ inputs.push_latest }}
+    steps:
+      - uses: docker/setup-buildx-action@v3
+      - uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - name: Publish multi-architecture manifest
+        run: |
+          tags=(--tag "$IMAGE:$VERSION")
+          if [[ "$PUSH_LATEST" == true ]]; then tags+=(--tag "$IMAGE:latest"); fi
+          docker buildx imagetools create "${tags[@]}" "$IMAGE:$VERSION-amd64" "$IMAGE:$VERSION-arm64"
+          docker buildx imagetools inspect "$IMAGE:$VERSION"
