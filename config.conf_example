@@ -5,6 +5,9 @@ FASTAPI_HOST=127.0.0.1
 #required: JUGO internal web UI port
 JUGO_PORT=11020
 
+# Optional explicit gateway model alias; empty uses model discovery.
+JUGO_OPENAI_V1_DEFAULT_LLM=
+
 #blank-if: USE_TMUX=false JUGO_TMUX_SESSION_PREFIX
 #required: JUGO tmux integration switch
 USE_TMUX=false

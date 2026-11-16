@@ -17,6 +17,9 @@ env = {'FASTAPI_HOST': '0.0.0.0', 'JUGO_PORT': '8080', 'USE_TMUX': 'false', 'TMU
        'JUGO_TMUX_SESSION_PREFIX': 'jugo', 'JUGO_DB_BACKEND': 'sqlite', 'NAPOLEON_PORT': '8080',
        'NAPOLEON_DB_BACKEND': 'sqlite', 'NATURALGROUNDING_PORT': '8080',
        'NATURALGROUNDING_DB_BACKEND': 'sqlite', 'NATURALGROUNDING_DJANGO_SECRET_KEY': secrets.token_urlsafe(48)}
+if app == 'jugo':
+    env['JUGO_OPENAI_V1_DEFAULT_LLM'] = 'default'
+    env['OPENAI_V1_URL'] = 'http://127.0.0.1:9/v1'
 cmd = ['docker', 'run', '-d', '--name', name, '-p', '127.0.0.1::8080', '-v', volume + ':' + root + '/sqlite']
 for key, value in env.items(): cmd += ['-e', key + '=' + value]
 cmd.append(image)
@@ -45,6 +48,8 @@ try:
     subprocess.run(['docker', 'restart', name], check=True)
     ready()
     subprocess.run(['docker', 'exec', name, 'python3', '-c', 'from pathlib import Path; assert Path(' + repr(marker) + ').read_text()=="persistent"'], check=True)
+    if app == 'jugo':
+        subprocess.run(['docker', 'exec', name, 'python3', '-c', "import json,urllib.request; data=json.load(urllib.request.urlopen('http://127.0.0.1:8080/chat/providers'))['providers']; assert data and data[0]['default_model']=='default' and data[0]['models']==['default'], data"], check=True)
     if app == 'naturalgrounding':
         subprocess.run(['docker', 'exec', name, 'python3', 'manage.py', 'check'], check=True)
     print('Application routes and persistent data survived restart without provider keys.')

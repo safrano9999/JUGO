@@ -4,6 +4,7 @@ Returns plain dicts, no HTTP dependencies.
 """
 
 import asyncio
+import os
 from console import current_session
 from openai_v1 import (
     consume_openai_v1_stream_async,
@@ -44,11 +45,17 @@ def discover_openai_v1() -> dict:
 
     discovered: dict[str, list[str]] = {}
     errors: dict[str, str] = {}
+    configured_model = os.environ.get("JUGO_OPENAI_V1_DEFAULT_LLM", "").strip()
     for provider in providers:
         try:
-            client = openai_v1_client(provider, timeout=10.0)
-            response = client.models.list()
-            models = sorted({m.id for m in response.data if getattr(m, "id", "")})
+            if configured_model:
+                # An explicit gateway alias remains usable while its upstream is
+                # configured centrally; discovery must not select another model.
+                models = [configured_model]
+            else:
+                client = openai_v1_client(provider, timeout=10.0)
+                response = client.models.list()
+                models = sorted({m.id for m in response.data if getattr(m, "id", "")})
             if not models:
                 errors[provider.key] = "No models found"
                 continue

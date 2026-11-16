@@ -18,9 +18,12 @@ on Caddy. Register that frontend in Citadel with the existing email Access polic
 The intended hostname is `jugo.f24-sales.com` and the Tailscale URL is
 `https://litellm.tailbab54f.ts.net:6009`.
 
-LLM provider credentials are pending. The UI starts without them. Later configure
-the intended gateway and its application key in `.env`; do not use a placeholder
-key or copy the gateway's master key into applications.
+The application uses `http://litellm-free-litellm:4000/v1` on the shared
+`litellm-free_default` network with the explicit model name `default`. Configure
+its real provider/model centrally in LiteLLM. Each application receives a separate
+LiteLLM virtual key restricted to `default` in its private `.env`; upstream
+provider keys and the gateway master key do not belong in application files.
+An unconfigured `default` route is intentionally not replaced with another model.
 
 NaturalGrounding's setup generates its Django secret and bootstrap admin password
 only when `.env` is absent. Credentials stay in that private file on Oracle.
